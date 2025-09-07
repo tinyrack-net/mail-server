@@ -1,0 +1,12 @@
+---
+creation_rules:
+  - path_regex: "talos\\/.+\\.sops\\.yaml$"
+    encrypted_regex: "secrets?|crt|key|token|serviceAccount"
+    key_groups:
+      - age:
+        - "age13sfv0zxnqzs8vysk3j9fwcf7fpg94u6v27wg22tsp6ygkv5pu4gqjfrc7f"
+#  - path_regex: "^cluster\\/[^\\/]+\\/kubernetes/.*\\.sops\\.ya?ml$"
+#    encrypted_regex: "^(data|stringData)$"
+#    key_groups:
+#      - age:
+#        - "age13sfv0zxnqzs8vysk3j9fwcf7fpg94u6v27wg22tsp6ygkv5pu4gqjfrc7f"
