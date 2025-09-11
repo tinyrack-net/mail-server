@@ -1,0 +1,31 @@
+---
+clusterName: public-cluster
+talosVersion: v1.11.0
+kubernetesVersion: v1.33.2
+endpoint: https://10.23.11.1:6443
+domain: cluster.local
+allowSchedulingOnMasters: true
+clusterPodNets:
+  - 10.244.0.0/16
+clusterSvcNets:
+  - 10.96.0.0/12
+
+nodes:
+  - hostname: control-plane-1
+    installDisk: "/dev/sda"
+    ipAddress: 10.23.11.1
+    controlPlane: true
+
+    schematic:
+      customization:
+        systemExtensions:
+          officialExtensions:
+            - siderolabs/iscsi-tools
+            - siderolabs/util-linux-tools
+            - siderolabs/qemu-guest-agent
+
+    networkInterfaces:
+      - interface: eth0
+        dhcp: true
+      - interface: eth1
+        dhcp: false
