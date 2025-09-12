@@ -16,16 +16,22 @@ nodes:
     ipAddress: 10.23.11.1
     controlPlane: true
 
-    schematic:
-      customization:
-        systemExtensions:
-          officialExtensions:
-            - siderolabs/iscsi-tools
-            - siderolabs/util-linux-tools
-            - siderolabs/qemu-guest-agent
-
     networkInterfaces:
       - interface: eth0
         dhcp: true
       - interface: eth1
         dhcp: false
+
+controlPlane: &controlPlaneTemplate
+  schematic:
+    customization:
+      systemExtensions:
+        officialExtensions:
+          - siderolabs/iscsi-tools
+          - siderolabs/util-linux-tools
+          - siderolabs/qemu-guest-agent
+  patches:
+    - "@./patches/longhorn.yaml"
+    - "@./patches/load-balancer.yaml"
+
+worker: *controlPlaneTemplate
