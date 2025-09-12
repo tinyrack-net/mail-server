@@ -6,3 +6,6 @@ resources:
   - reflector.yaml
   - configs.yaml
   - longhorn.yaml
+  - cert-manager.yaml
+  - metallb.yaml
+  - traefik.yaml
