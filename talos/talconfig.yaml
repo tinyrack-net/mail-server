@@ -33,5 +33,7 @@ controlPlane: &controlPlaneTemplate
   patches:
     - "@./patches/longhorn.yaml"
     - "@./patches/load-balancer.yaml"
+    - "@./patches/rotate-server-certificates.yaml"
+    - "@./patches/metrics-server.yaml"
 
 worker: *controlPlaneTemplate
