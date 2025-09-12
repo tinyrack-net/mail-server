@@ -1,4 +1,2 @@
 .idea
-talos/talosconfig
-talos/controlplane.yaml
-talos/worker.yaml
+.vscode
