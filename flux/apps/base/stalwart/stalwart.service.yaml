@@ -3,8 +3,10 @@ kind: Service
 metadata:
   name: stalwart-service
   namespace: stalwart-system
+  annotations:
+    metallb.universe.tf/address-pool: metallb-mail-ip-pool
 spec:
-  type: ClusterIP
+  type: LoadBalancer
   selector:
     app: stalwart
   ports:
