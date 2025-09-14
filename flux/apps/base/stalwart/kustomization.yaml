@@ -5,3 +5,6 @@ resources:
   - stalwart.database.superuser.secret.yaml
   - stalwart.database.user.secret.yaml
   - stalwart.database.yaml
+  - stalwart.secret.yaml
+  - stalwart.config.yaml
+  - stalwart.deployment.yaml
