@@ -3,5 +3,4 @@ kind: Kustomization
 resources:
   - metallb.private-ip-address-pool.yaml
   - metallb.public-ip-address-pool.yaml
-  - metallb.mail-ip-address-pool.yaml
   - metallb.l2-advertisement.yaml
