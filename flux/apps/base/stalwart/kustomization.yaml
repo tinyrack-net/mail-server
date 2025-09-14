@@ -8,3 +8,4 @@ resources:
   - stalwart.secret.yaml
   - stalwart.config.yaml
   - stalwart.deployment.yaml
+  - stalwart.service.yaml
