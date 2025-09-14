@@ -7,4 +7,4 @@ resources:
   - stalwart.database.yaml
   - stalwart.secret.yaml
   - stalwart.config.yaml
-  - stalwart.deployment.yaml
+#  - stalwart.deployment.yaml
