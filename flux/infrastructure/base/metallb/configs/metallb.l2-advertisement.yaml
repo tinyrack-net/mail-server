@@ -7,4 +7,3 @@ spec:
   ipAddressPools:
     - metallb-private-ip-pool
     - metallb-public-ip-pool
-    - metallb-mail-ip-pool

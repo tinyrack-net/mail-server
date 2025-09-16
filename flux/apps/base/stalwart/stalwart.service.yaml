@@ -4,7 +4,7 @@ metadata:
   name: stalwart-service
   namespace: stalwart-system
   annotations:
-    metallb.universe.tf/address-pool: metallb-mail-ip-pool
+    metallb.io/loadBalancerIPs: 91.99.254.190
 spec:
   type: LoadBalancer
   selector:
