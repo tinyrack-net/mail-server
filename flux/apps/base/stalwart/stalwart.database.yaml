@@ -46,16 +46,16 @@ spec:
     name: stalwart-database-superuser-secret
 
   # 신규 클러스터 프로비저닝 시 주석 처리
-  # bootstrap:
-  #   recovery:
-  #     source: stalwart-database
-
   bootstrap:
-    initdb:
-      database: stalwart
-      owner: stalwart
-      secret:
-        name: stalwart-database-user-secret
+    recovery:
+      source: stalwart-database
+
+  # bootstrap:
+  #   initdb:
+  #     database: stalwart
+  #     owner: stalwart
+  #     secret:
+  #       name: stalwart-database-user-secret
 ---
 apiVersion: postgresql.cnpg.io/v1
 kind: ScheduledBackup
