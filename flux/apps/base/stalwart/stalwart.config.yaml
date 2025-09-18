@@ -5,9 +5,9 @@ metadata:
   namespace: stalwart-system
 data:
   config.toml: |
-    [authentication.fallback-admin]
-    user = "%{env:ADMIN_USERNAME}%"
-    secret = "%{env:ADMIN_SECRET}%"
+    # [authentication.fallback-admin]
+    # user = "%{env:ADMIN_USERNAME}%"
+    # secret = "%{env:ADMIN_SECRET}%"
 
     [server.listener."http"]
     bind = ["[::]:80"]
