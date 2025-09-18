@@ -1,4 +1,4 @@
 public-cluster-kmaster1.yaml
 talosconfig
 public-cluster-control-plane-1.yaml
-kubeconfig
+kubeconfigpublic-cluster-public-control-plane-1.yaml
