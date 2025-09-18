@@ -7,7 +7,7 @@ spec:
   ipAddressPools:
     - metallb-public-ip-pool
   interfaces:
-    - eth1
+    - eth0
   nodeSelectors:
     - matchLabels:
         node-role.kubernetes.io/control-plane: ""
