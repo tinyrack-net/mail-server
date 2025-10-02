@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: stalwart
-          image: stalwartlabs/stalwart
+          image: stalwartlabs/stalwart:v0.13.4
           imagePullPolicy: IfNotPresent
           resources:
             requests:
@@ -73,3 +73,4 @@ spec:
           configMap:
             name: stalwart-config
             optional: false
+
