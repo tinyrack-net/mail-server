@@ -8,9 +8,9 @@ spec:
   path: ./flux/infrastructure/base/traefik
   prune: true
   timeout: 5m
-  wait: true
   sourceRef:
     kind: GitRepository
     name: flux-system
   dependsOn:
     - name: infrastructure-repositories
+
