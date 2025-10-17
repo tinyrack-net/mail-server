@@ -7,7 +7,7 @@ spec:
   chart:
     spec:
       chart: traefik
-      version: '37.1.0'
+      version: "37.1.2"
       sourceRef:
         kind: HelmRepository
         name: traefik-repository
@@ -17,9 +17,9 @@ spec:
   releaseName: traefik
   values:
     providers:
-      kubernetesCRD: 
+      kubernetesCRD:
         allowExternalNameServices: true
-      kubernetesIngress: 
+      kubernetesIngress:
         allowExternalNameServices: true
     deployment:
       replicas: 2
