@@ -4,12 +4,13 @@ kubectl -n sealed-secrets apply -f ./flux/main.key.yaml --force
 ```
 
 ```bash
-flux bootstrap github \
-  --owner=tinyrack94 \
+flux bootstrap gitea \
+  --token-auth \
+  --hostname=git.winetree94.com \
   --repository=public \
   --branch=main \
   --path=./flux/clusters/production \
-  --owner=tinyrack-net
+  --owner=tinyrack
 ```
 
 ```bash
