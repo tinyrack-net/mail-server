@@ -7,7 +7,7 @@ kubectl -n sealed-secrets apply -f ./flux/main.key.yaml --force
 flux bootstrap gitea \
   --token-auth \
   --hostname=git.winetree94.com \
-  --repository=public \
+  --repository=mail-server \
   --branch=main \
   --path=./flux/clusters/production \
   --owner=tinyrack
