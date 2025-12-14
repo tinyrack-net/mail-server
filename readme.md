@@ -11,7 +11,7 @@ sh -s - server \
 
 ```bash
 kubectl create namespace sealed-secrets
-kubectl -n sealed-secrets apply -f ./flux/main.key.yaml --force
+kubectl -n sealed-secrets apply -f ./main.key.yaml --force
 ```
 
 ```bash
@@ -20,7 +20,7 @@ flux bootstrap gitea \
   --hostname=git.winetree94.com \
   --repository=mail-server \
   --branch=main \
-  --path=./flux/clusters/production \
+  --path=./clusters/production \
   --owner=tinyrack
 ```
 
