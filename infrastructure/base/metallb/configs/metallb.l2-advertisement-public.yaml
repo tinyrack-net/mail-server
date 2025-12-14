@@ -5,9 +5,6 @@ metadata:
   namespace: metallb-system
 spec:
   ipAddressPools:
-    - metallb-public-ip-pool
+    - metallb-hetzner-ip-pools
   interfaces:
     - eth0
-  nodeSelectors:
-    - matchLabels:
-        node-role.kubernetes.io/control-plane: ""
