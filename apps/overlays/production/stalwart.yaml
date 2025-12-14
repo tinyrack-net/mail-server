@@ -5,7 +5,7 @@ metadata:
   namespace: flux-system
 spec:
   interval: 15m
-  path: ./flux/apps/base/stalwart
+  path: ./apps/base/stalwart
   prune: true
   timeout: 5m
   wait: true
