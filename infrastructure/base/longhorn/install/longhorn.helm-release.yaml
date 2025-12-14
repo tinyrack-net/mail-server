@@ -20,6 +20,8 @@ spec:
       defaultClass: false
     longhornUI:
       replicas: 1
+    defaultSettings:
+      storageMinimalAvailablePercentage: 5
     defaultBackupStore:
       backupTarget: s3://tinyrack-prod@hetzner/clusters/public/longhorn
       backupTargetCredentialSecret: tinyrack-s3-secret
