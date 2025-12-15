@@ -78,6 +78,16 @@ spec:
                 secretKeyRef:
                   name: stalwart-database-user-secret
                   key: password
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: tinyrack-s3-secret
+                  key: AWS_ACCESS_KEY_ID
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: tinyrack-s3-secret
+                  key: AWS_SECRET_ACCESS_KEY
       volumes:
         - name: stalwart-config
           configMap:

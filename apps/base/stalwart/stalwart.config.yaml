@@ -60,13 +60,6 @@ data:
     socket.nodelay = true
     socket.reuse-addr = true
     socket.reuse-port = true
-
-    [storage]
-    data = "postgresql"
-    fts = "postgresql"
-    blob = "postgresql"
-    lookup = "postgresql"
-    directory = "internal"
     
     [store."postgresql"]
     type = "postgresql"
@@ -83,6 +76,23 @@ data:
     
     [store."postgresql".pool]
     max-connections = 10
+    
+    [store."hetzner-object-storage"]
+    type = "s3"
+    bucket = "tinyrack-stalwart"
+    region = "hetzner"
+    access-key = "%{env:AWS_ACCESS_KEY_ID}%"
+    secret-key = "%{env:AWS_SECRET_ACCESS_KEY}%"
+    endpoint = "https://nbg1.your-objectstorage.com"
+    timeout = "30s"
+    key-prefix = "stalwart/"
+    
+    [storage]
+    data = "postgresql"
+    fts = "postgresql"
+    blob = "hetzner-object-storage"
+    lookup = "postgresql"
+    directory = "internal"
     
     [directory."internal"]
     type = "internal"
