@@ -113,7 +113,7 @@ data:
     [queue.route."smtp2go"]
     type = "relay"
     address = "mail.smtp2go.com"
-    port = 2525
+    port = 587
     protocol = "smtp"
     
     [queue.route."smtp2go".tls]
