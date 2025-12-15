@@ -117,7 +117,7 @@ data:
     protocol = "smtp"
     
     [queue.route."smtp2go".tls]
-    implicit = true
+    implicit = false
     allow-invalid-certs = false
     
     [queue.route."smtp2go".auth]
