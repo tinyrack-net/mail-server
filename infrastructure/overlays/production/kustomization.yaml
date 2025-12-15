@@ -6,5 +6,4 @@ resources:
   - reflector.yaml
   - configs.yaml
   - longhorn.yaml
-  - metallb.yaml
   - cloudnative-pg.yaml
