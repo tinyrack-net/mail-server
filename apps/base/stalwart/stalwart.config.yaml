@@ -8,7 +8,10 @@ data:
     # [authentication.fallback-admin]
     # user = "%{env:ADMIN_USERNAME}%"
     # secret = "%{env:ADMIN_SECRET}%"
-
+    
+    [server]
+    allowed-ip = { "10.57.0.0/16", "10.58.0.0/16" }
+    
     [server.listener."http"]
     bind = ["[::]:80"]
     protocol = "http"
