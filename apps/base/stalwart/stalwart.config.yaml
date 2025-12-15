@@ -89,6 +89,10 @@ data:
     endpoint = "https://nbg1.your-objectstorage.com"
     timeout = "30s"
     key-prefix = "stalwart/"
+    compression = "lz4"
+    
+    [store."hetzner-object-storage".purge]
+    frequency = "30 5 *"
     
     [storage]
     data = "postgresql"
