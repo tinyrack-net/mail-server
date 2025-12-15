@@ -102,3 +102,28 @@ data:
     level = "info"
     ansi = false
     enable = true
+    
+    [queue.route."local"]
+    type = "local"
+    
+    [queue.route."mx"]
+    type = "mx"
+    ip-lookup = "ipv4_then_ipv6"
+    
+    [queue.route."smtp2go"]
+    type = "relay"
+    address = "mail.smtp2go.com"
+    port = 2525
+    protocol = "smtp"
+    
+    [queue.route."smtp2go".tls]
+    implicit = true
+    allow-invalid-certs = false
+    
+    [queue.route."smtp2go".auth]
+    username = "%{env:SMTP2GO_USERNAME}%"
+    password = "%{env:SMTP2GO_PASSWORD}%"
+
+    [queue.strategy]
+    route = [ { if = "is_local_domain('', rcpt_domain)", then = "'local'" },
+    { else = "'smtp2go'" } ]

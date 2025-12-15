@@ -63,6 +63,16 @@ spec:
                 secretKeyRef:
                   name: stalwart-secret
                   key: admin-secret
+            - name: SMTP2GO_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: stalwart-smtp2go-secret
+                  key: SMTP2GO_USERNAME
+            - name: SMTP2GO_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: stalwart-smtp2go-secret
+                  key: SMTP2GO_PASSWORD
             - name: DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
