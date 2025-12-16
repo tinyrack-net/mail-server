@@ -149,4 +149,4 @@ data:
     secret = "%{env:SMTP2GO_PASSWORD}%"
     
     [queue.strategy]
-    route = [ { if = "is_local_domain('', rcpt_domain)", then = "'local'" }, { else = "'mx'" } ]
+    route = [ { if = "is_local_domain('', rcpt_domain)", then = "'local'" }, { else = "'smtp2go'" } ]
