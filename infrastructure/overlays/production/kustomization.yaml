@@ -6,4 +6,5 @@ resources:
   - reflector.yaml
   - configs.yaml
   - longhorn.yaml
+  - cert-manager.yaml
   - cloudnative-pg.yaml
