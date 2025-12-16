@@ -9,8 +9,8 @@ spec:
   routes:
     - match: Host(`mail.winetree94.com`)
       kind: Rule
-      # middlewares:
-      #   - name: redirect-to-https
+      middlewares:
+        - name: redirect-to-https
       services:
         - name: stalwart-web-service
           port: 80
