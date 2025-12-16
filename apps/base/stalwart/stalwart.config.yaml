@@ -9,8 +9,8 @@ data:
     # user = "%{env:ADMIN_USERNAME}%"
     # secret = "%{env:ADMIN_SECRET}%"
     
-    [server.proxy]
-    trusted-networks = ["10.57.0.0/16", "::1", "10.58.0.0/16"]
+    # [server.proxy]
+    # trusted-networks = ["10.57.0.0/16", "::1", "10.58.0.0/16"]
     
     [http]
     hsts = true
