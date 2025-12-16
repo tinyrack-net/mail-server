@@ -13,7 +13,14 @@ data:
     trusted-networks = ["10.57.0.0/16", "::1", "10.58.0.0/16"]
     
     [server]
+    hostname = "mail.winetree94.com"
     allowed-ip = { "10.57.0.0/16", "10.58.0.0/16" }
+    
+    [http]
+    hsts = true
+    permissive-cors = false
+    url = "protocol + '://' + config_get('server.hostname') + ':' + local_port"
+    use-x-forwarded = true
     
     [server.listener."http"]
     bind = ["[::]:80"]
