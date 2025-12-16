@@ -18,7 +18,7 @@ spec:
       storageClassName: longhorn-strict-local
       volumeMode: Filesystem
   backup:
-    retentionPolicy: 1d
+    retentionPolicy: 30d
     barmanObjectStore: &barmanObjectStore
       destinationPath: s3://tinyrack-prod/clusters/public/apps/stalwart/database
       endpointURL: https://fsn1.your-objectstorage.com
