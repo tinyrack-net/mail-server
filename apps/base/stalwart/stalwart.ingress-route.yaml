@@ -28,7 +28,7 @@ spec:
       kind: Rule
       services:
         - name: stalwart-web-service
-          port: 443
+          port: 80
   tls:
     secretName: letsencrypt-cert
 ---
