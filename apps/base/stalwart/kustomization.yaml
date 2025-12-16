@@ -9,4 +9,5 @@ resources:
   - stalwart.smtp2go.secret.yaml
   - stalwart.config.yaml
   - stalwart.deployment.yaml
-  - stalwart.service.yaml
+  - stalwart.web.service.yaml
+  - stalwart.mail.service.yaml
