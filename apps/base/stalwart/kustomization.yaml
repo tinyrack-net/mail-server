@@ -11,3 +11,4 @@ resources:
   - stalwart.deployment.yaml
   - stalwart.web.service.yaml
   - stalwart.mail.service.yaml
+  - stalwart.ingress-route.yaml
