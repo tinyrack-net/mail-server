@@ -4,8 +4,7 @@ curl -fl https://get.k3s.io | \
 sh -s - server \
   --cluster-init \
   --cluster-cidr=10.57.0.0/16 \
-  --service-cidr=10.58.0.0/16 \
-  --disable traefik
+  --service-cidr=10.58.0.0/16
 ```
 
 ```bash
