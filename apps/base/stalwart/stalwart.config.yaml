@@ -12,10 +12,6 @@ data:
     [server.proxy]
     trusted-networks = ["10.57.0.0/16", "::1", "10.58.0.0/16"]
     
-    [server]
-    hostname = "mail.winetree94.com"
-    allowed-ip = { "10.57.0.0/16", "10.58.0.0/16" }
-    
     [http]
     hsts = true
     permissive-cors = false
@@ -73,6 +69,7 @@ data:
     socket.nodelay = true
     socket.reuse-addr = true
     socket.reuse-port = true
+    allowed-ip = { "10.57.0.0/16", "10.58.0.0/16" }
     
     [store."postgresql"]
     type = "postgresql"
