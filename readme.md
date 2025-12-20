@@ -1,7 +1,8 @@
 ```bash
-sudo tailscale up --accept-dns=false --reset
+sudo tailscale up \
+  --accept-dns=false \
+  --reset
 ```
-
 
 ```bash
 curl -fl https://get.k3s.io | \
