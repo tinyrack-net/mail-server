@@ -1,10 +1,17 @@
+```bash
+sudo tailscale up --accept-dns=false --reset
+```
+
 
 ```bash
 curl -fl https://get.k3s.io | \
 sh -s - server \
   --cluster-init \
   --cluster-cidr=10.57.0.0/16 \
-  --service-cidr=10.58.0.0/16
+  --service-cidr=10.58.0.0/16 \
+  --tls-san=100.127.220.52 \
+  --tls-san=mail-server.time-inconnu.ts.net
+
 ```
 
 ```bash
