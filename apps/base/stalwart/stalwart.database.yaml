@@ -20,7 +20,7 @@ spec:
   backup:
     retentionPolicy: 30d
     barmanObjectStore: &barmanObjectStore
-      destinationPath: s3://tinyrack-prod/clusters/public/apps/stalwart/database
+      destinationPath: s3://tinyrack-prod/clusters/public/apps/stalwart/database-17
       endpointURL: https://fsn1.your-objectstorage.com
       s3Credentials:
         accessKeyId:
