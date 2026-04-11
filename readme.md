@@ -21,13 +21,11 @@ kubectl -n sealed-secrets apply -f ./main.key.yaml --force
 ```
 
 ```bash
-flux bootstrap gitea \
-  --token-auth \
-  --hostname=git.winetree94.com \
+flux bootstrap github \
   --repository=mail-server \
   --branch=main \
   --path=./clusters/production \
-  --owner=tinyrack
+  --owner=tinyrack-net
 ```
 
 ```bash
