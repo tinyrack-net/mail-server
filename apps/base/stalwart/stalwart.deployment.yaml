@@ -13,10 +13,45 @@ spec:
       labels:
         app: stalwart
     spec:
+      initContainers:
+        - name: render-stalwart-config
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              cat > /config/config.json <<EOF
+              {
+                "@type": "PostgreSql",
+                "host": "stalwart-database-cluster-rw.stalwart-system.svc.cluster.local",
+                "port": 5432,
+                "database": "stalwart",
+                "authUsername": "stalwart",
+                "authSecret": {
+                  "@type": "Value",
+                  "secret": "${DATABASE_PASSWORD}"
+                },
+                "useTls": false,
+                "allowInvalidCerts": false,
+                "timeout": 15000,
+                "poolMaxConnections": 10
+              }
+              EOF
+          env:
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: stalwart-database-user-secret
+                  key: password
+          volumeMounts:
+            - name: stalwart-config-runtime
+              mountPath: /config
       containers:
         - name: stalwart
-          image: stalwartlabs/stalwart:v0.15.5
+          image: stalwartlabs/stalwart:v0.16.5
           imagePullPolicy: IfNotPresent
+          args:
+            - --config=/etc/stalwart/config.json
           resources:
             requests:
               memory: "256Mi"
@@ -48,11 +83,13 @@ spec:
             - containerPort: 110
             - containerPort: 995
           volumeMounts:
-            - name: stalwart-config
-              mountPath: "/opt/stalwart/etc/config.toml"
-              subPath: "config.toml"
+            - name: stalwart-config-runtime
+              mountPath: "/etc/stalwart/config.json"
+              subPath: "config.json"
               readOnly: true
           env:
+            - name: STALWART_PUBLIC_URL
+              value: https://mail.winetree94.com
             - name: ADMIN_USERNAME
               valueFrom:
                 secretKeyRef:
@@ -89,7 +126,5 @@ spec:
                   name: tinyrack-s3-secret
                   key: AWS_SECRET_ACCESS_KEY
       volumes:
-        - name: stalwart-config
-          configMap:
-            name: stalwart-config
-            optional: false
+        - name: stalwart-config-runtime
+          emptyDir: {}

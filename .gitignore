@@ -2,3 +2,6 @@
 .vscode
 main.key.yaml
 
+# Stalwart v0.16 migration artifacts may contain secrets, hashes, DKIM keys, or TLS keys.
+stalwart-v0.16-migration/
+apps/base/stalwart/migration-artifacts/
