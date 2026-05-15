@@ -81,7 +81,7 @@ spec:
         storageClass: longhorn
         accessModes:
           - ReadWriteOnce
-        size: 20Gi
+        size: 5Gi
         enableStatefulSetAutoDeletePVC: false
         whenDeleted: Retain
         whenScaled: Retain

@@ -150,7 +150,7 @@ spec:
             summary: Stalwart Barman backup job failed
             description: Kubernetes reports a failed Stalwart backup job in stalwart-system.
         - alert: MailServerBlackboxProbeFailed
-          expr: probe_success{instance="https://mail.winetree94.com"} == 0
+          expr: probe_success{instance="https://mail.winetree94.com/login"} == 0
           for: 5m
           labels:
             severity: critical

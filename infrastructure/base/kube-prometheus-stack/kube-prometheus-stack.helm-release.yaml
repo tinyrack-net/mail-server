@@ -55,7 +55,7 @@ spec:
               - api_url: https://api.telegram.org
                 bot_token_file: /etc/alertmanager/secrets/alertmanager-telegram/bot_token
                 chat_id: -1003609470982
-                message_thread_id: 2
+                message_thread_id: 14
                 parse_mode: HTML
                 send_resolved: true
                 message: |-
