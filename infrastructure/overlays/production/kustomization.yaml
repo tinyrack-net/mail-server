@@ -8,3 +8,8 @@ resources:
   - longhorn.yaml
   - cert-manager.yaml
   - cloudnative-pg.yaml
+  - kube-prometheus-stack.yaml
+  - kube-prometheus-stack-config.yaml
+  - loki.yaml
+  - alloy.yaml
+  - blackbox-exporter.yaml

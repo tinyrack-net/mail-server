@@ -1,0 +1,159 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: kube-prometheus-stack-mail-server-rules
+  namespace: kube-prometheus-stack-system
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: mail-server.control-plane
+      rules:
+        - alert: KubeAPIDown
+          expr: up{job="apiserver"} == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: Kubernetes API target is down
+            description: Prometheus cannot scrape the Kubernetes API server target for more than 5 minutes.
+        - alert: KubeSchedulerDown
+          expr: up{job="kube-scheduler"} == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: Kubernetes scheduler target is down
+            description: Prometheus cannot scrape the Kubernetes scheduler target for more than 5 minutes.
+        - alert: KubeControllerManagerDown
+          expr: up{job="kube-controller-manager"} == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: Kubernetes controller-manager target is down
+            description: Prometheus cannot scrape the Kubernetes controller-manager target for more than 5 minutes.
+    - name: mail-server.gitops
+      rules:
+        - alert: MailServerFluxKustomizationNotReady
+          expr: gotk_reconcile_condition{kind="Kustomization",type="Ready",status="False"} == 1
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Flux Kustomization {{ $labels.namespace }}/{{ $labels.name }} is not ready
+            description: Flux has reported the Kustomization as not ready for more than 10 minutes.
+        - alert: MailServerFluxHelmReleaseNotReady
+          expr: gotk_reconcile_condition{kind="HelmRelease",type="Ready",status="False"} == 1
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Flux HelmRelease {{ $labels.namespace }}/{{ $labels.name }} is not ready
+            description: Flux has reported the HelmRelease as not ready for more than 10 minutes.
+    - name: mail-server.node
+      rules:
+        - alert: MailServerHighMemoryPressure
+          expr: 1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) > 0.9
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: Node {{ $labels.instance }} memory usage is above 90%
+            description: Available memory has been below 10% for more than 15 minutes.
+        - alert: MailServerNodeFilesystemAlmostFull
+          expr: |
+            (
+              node_filesystem_avail_bytes{fstype!~"tmpfs|overlay",mountpoint!~"/run.*|/var/lib/kubelet/pods.*"}
+              /
+              node_filesystem_size_bytes{fstype!~"tmpfs|overlay",mountpoint!~"/run.*|/var/lib/kubelet/pods.*"}
+            ) < 0.10
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: Node filesystem {{ $labels.instance }} {{ $labels.mountpoint }} is below 10% free
+            description: The filesystem has less than 10% available space for more than 15 minutes.
+        - alert: MailServerNodeNotReady
+          expr: kube_node_status_condition{condition="Ready",status="true"} == 0
+          for: 10m
+          labels:
+            severity: critical
+          annotations:
+            summary: Node {{ $labels.node }} is not Ready
+            description: Kubernetes reports node {{ $labels.node }} as not Ready for more than 10 minutes.
+    - name: mail-server.storage
+      rules:
+        - alert: MailServerPVCNearCapacity
+          expr: |
+            (
+              kubelet_volume_stats_available_bytes
+              /
+              kubelet_volume_stats_capacity_bytes
+            ) < 0.15
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: PVC {{ $labels.namespace }}/{{ $labels.persistentvolumeclaim }} is below 15% free
+            description: The persistent volume claim has less than 15% available space for more than 15 minutes.
+        - alert: MailServerLonghornVolumeDegraded
+          expr: longhorn_volume_robustness == 2
+          for: 10m
+          labels:
+            severity: critical
+          annotations:
+            summary: Longhorn volume {{ $labels.volume }} is degraded
+            description: Longhorn reports the volume robustness as degraded for more than 10 minutes.
+        - alert: MailServerLonghornReplicaFailure
+          expr: longhorn_volume_robustness == 3
+          for: 10m
+          labels:
+            severity: critical
+          annotations:
+            summary: Longhorn volume {{ $labels.volume }} is faulted
+            description: Longhorn reports the volume robustness as faulted for more than 10 minutes.
+    - name: mail-server.certificates
+      rules:
+        - alert: MailServerCertificateExpiresSoon
+          expr: certmanager_certificate_expiration_timestamp_seconds - time() < 14 * 24 * 60 * 60
+          for: 1h
+          labels:
+            severity: warning
+          annotations:
+            summary: Certificate {{ $labels.namespace }}/{{ $labels.name }} expires within 14 days
+            description: cert-manager reports that this certificate is approaching expiration.
+    - name: mail-server.workloads
+      rules:
+        - alert: StalwartDeploymentUnavailable
+          expr: kube_deployment_status_replicas_available{namespace="stalwart-system",deployment="stalwart-deployment"} < 1
+          for: 10m
+          labels:
+            severity: critical
+          annotations:
+            summary: Stalwart deployment has no available replicas
+            description: The stalwart-deployment in stalwart-system has had no available replicas for more than 10 minutes.
+        - alert: StalwartDatabasePodNotReady
+          expr: kube_pod_status_ready{namespace="stalwart-system",pod=~"stalwart-database-cluster-[0-9]+",condition="true"} == 0
+          for: 10m
+          labels:
+            severity: critical
+          annotations:
+            summary: Stalwart CNPG database pod {{ $labels.pod }} is not ready
+            description: A Stalwart database pod has not been Ready for more than 10 minutes.
+        - alert: StalwartBarmanBackupFailure
+          expr: kube_job_status_failed{namespace="stalwart-system",job_name=~"stalwart-backup.*"} > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: Stalwart Barman backup job failed
+            description: Kubernetes reports a failed Stalwart backup job in stalwart-system.
+        - alert: MailServerBlackboxProbeFailed
+          expr: probe_success{instance="https://mail.winetree94.com"} == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: Blackbox probe failed for {{ $labels.instance }}
+            description: The public mail endpoint probe has failed for more than 5 minutes.
