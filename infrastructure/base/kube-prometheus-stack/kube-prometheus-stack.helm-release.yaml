@@ -83,7 +83,7 @@ spec:
         storageClassName: longhorn
         accessModes:
           - ReadWriteOnce
-        size: 10Gi
+        size: 2Gi
       ingress:
         enabled: false
     prometheus:
@@ -100,4 +100,4 @@ spec:
                 - ReadWriteOnce
               resources:
                 requests:
-                  storage: 50Gi
+                  storage: 5Gi
