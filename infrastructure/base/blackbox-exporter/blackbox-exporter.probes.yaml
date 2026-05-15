@@ -14,4 +14,4 @@ spec:
   targets:
     staticConfig:
       static:
-        - https://mail.winetree94.com/login
+        - https://mail.winetree94.com/admin/login
