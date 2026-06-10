@@ -1,10 +1,10 @@
 # Stalwart v0.16 Migration Runbook
 
-This repository is prepared for Stalwart `v0.16.5`, but production must not be rolled forward until the offline migration steps have completed. Stalwart 0.16 replaces the old `config.toml` management model with a small `config.json` plus JMAP-managed objects applied with `stalwart-cli`.
+This repository is prepared for Stalwart `v0.16.8`, but production must not be rolled forward until the offline migration steps have completed. Stalwart 0.16 replaces the old `config.toml` management model with a small `config.json` plus JMAP-managed objects applied with `stalwart-cli`.
 
 ## Prepared Manifest Changes
 
-- `stalwart.deployment.yaml` now uses `stalwartlabs/stalwart:v0.16.5`.
+- `stalwart.deployment.yaml` now uses `stalwartlabs/stalwart:v0.16.8`.
 - The startup config is mounted at `/etc/stalwart/config.json`.
 - An initContainer renders `config.json` from `stalwart-database-user-secret`; Stalwart 0.16 does not expand `%{env:...}%` inside `config.json`.
 - `stalwart.config.yaml` is kept as a non-secret reference for the PostgreSQL `DataStore` shape.
