@@ -16,3 +16,5 @@ spec:
     kind: ClusterIssuer
   dnsNames:
     - "*.winetree94.com"
+    - "*.tinyrack.net"
+    - "tinyrack.net"

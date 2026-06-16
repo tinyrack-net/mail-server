@@ -12,6 +12,7 @@ spec:
     - selector:
         dnsZones:
           - "winetree94.com"
+          - "tinyrack.net"
       dns01:
         cloudflare:
           email: winetree94@gmail.com
