@@ -30,7 +30,7 @@ metadata:
     cnpg.io/skipEmptyWalArchiveCheck: "enabled"
 spec:
   instances: 1
-  imageName: ghcr.io/cloudnative-pg/postgresql:17.9-standard-bookworm
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.10-standard-bookworm
   plugins:
     - name: barman-cloud.cloudnative-pg.io
       isWALArchiver: true
