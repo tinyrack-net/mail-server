@@ -26,11 +26,34 @@ spec:
   routes:
     - match: Host(`mail.winetree94.com`)
       kind: Rule
+      middlewares:
+        - name: stalwart-jmap-cors
       services:
         - name: stalwart-web-service
           port: 80
   tls:
     secretName: letsencrypt-cert
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: stalwart-jmap-cors
+  namespace: stalwart-system
+spec:
+  headers:
+    accessControlAllowOriginList:
+      - https://webmail.winetree94.com
+    accessControlAllowMethods:
+      - GET
+      - POST
+      - OPTIONS
+    accessControlAllowHeaders:
+      - Authorization
+      - Content-Type
+      - Accept
+      - X-Requested-With
+    accessControlMaxAge: 86400
+    addVaryHeader: true
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
