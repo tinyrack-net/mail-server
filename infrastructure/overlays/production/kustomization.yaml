@@ -13,5 +13,4 @@ resources:
   - kube-prometheus-stack.yaml
   - kube-prometheus-stack-config.yaml
   - observability.yaml
-  - loki.yaml
   - blackbox-exporter.yaml
