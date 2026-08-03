@@ -6,4 +6,3 @@ resources:
   - reflector.yaml
   - jetstack.yaml
   - prometheus-community.yaml
-  - grafana.yaml
