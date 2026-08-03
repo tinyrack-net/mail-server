@@ -71,21 +71,7 @@ spec:
         secrets:
           - alertmanager-telegram
     grafana:
-      additionalDataSources:
-        - name: Loki
-          type: loki
-          access: proxy
-          url: http://loki.observability-system.svc.cluster.local:3100
-          isDefault: false
-      persistence:
-        enabled: true
-        type: pvc
-        storageClassName: local-path
-        accessModes:
-          - ReadWriteOnce
-        size: 2Gi
-      ingress:
-        enabled: false
+      enabled: false
     kubeControllerManager:
       enabled: false
     kubeProxy:
