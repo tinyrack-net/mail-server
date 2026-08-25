@@ -4,7 +4,7 @@ metadata:
   name: stalwart-deployment
   namespace: stalwart-system
 spec:
-  replicas: 0
+  replicas: 1
   selector:
     matchLabels:
       app: stalwart
@@ -48,7 +48,7 @@ spec:
               mountPath: /config
       containers:
         - name: stalwart
-          image: stalwartlabs/stalwart:v0.16.14
+          image: stalwartlabs/stalwart:v0.16.19
           imagePullPolicy: IfNotPresent
           args:
             - --config=/etc/stalwart/config.json
