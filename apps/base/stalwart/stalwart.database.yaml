@@ -30,7 +30,6 @@ spec:
   retentionPolicy: 30d
   configuration:
     destinationPath: s3://tinyrack-prod/clusters/public/apps/stalwart/database-18
-    serverName: stalwart-database-pg18
     endpointURL: https://fsn1.your-objectstorage.com
     s3Credentials:
       accessKeyId:
@@ -60,6 +59,7 @@ spec:
       isWALArchiver: true
       parameters:
         barmanObjectName: stalwart-database-backup-store-pg18
+        serverName: stalwart-database-pg18
   storage:
     pvcTemplate:
       accessModes:
