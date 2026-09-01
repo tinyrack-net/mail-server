@@ -3,6 +3,5 @@ kind: Kustomization
 resources:
   - longhorn.namespace.yaml
   - longhorn.helm-release.yaml
-  - longhorn.prometheus.network-policy.yaml
   - longhorn.rwx.storage-class.yaml
   - longhorn.strict-local.storage-class.yaml

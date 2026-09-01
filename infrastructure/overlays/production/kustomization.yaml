@@ -11,6 +11,4 @@ resources:
   - cert-manager.yaml
   - cloudnative-pg.yaml
   - kube-prometheus-stack.yaml
-  - kube-prometheus-stack-config.yaml
   - observability.yaml
-  - blackbox-exporter.yaml
