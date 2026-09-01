@@ -5,4 +5,3 @@ resources:
   - sealed-secrets.yaml
   - reflector.yaml
   - jetstack.yaml
-  - prometheus-community.yaml

@@ -12,7 +12,7 @@
 
 This repository manages the desired state of the `mail-server` Kubernetes cluster.
 
-It runs Flux on K3s and uses the manifests under `apps` and `infrastructure` to declaratively manage Stalwart Mail, certificates, storage, databases, observability, and cluster maintenance.
+It runs Flux on K3s and uses the manifests under `apps` and `infrastructure` to declaratively manage Stalwart Mail, certificates, storage, databases, and cluster maintenance.
 
 ## GitOps
 
@@ -31,7 +31,6 @@ It runs Flux on K3s and uses the manifests under `apps` and `infrastructure` to 
 - [CloudNativePG](https://cloudnative-pg.io/): PostgreSQL operator for application data.
 - [Longhorn](https://longhorn.io/): persistent volume management and volume backups.
 - [cert-manager](https://cert-manager.io/): TLS certificate automation.
-- [kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack), [Loki](https://grafana.com/oss/loki/), and [Alloy](https://grafana.com/oss/alloy-opentelemetry-collector/): observability.
 
 Exposed mail protocols are managed through the `stalwart-mail-service` LoadBalancer service:
 
