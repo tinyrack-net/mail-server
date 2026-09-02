@@ -1,0 +1,15 @@
+{
+  "@type": "PostgreSql",
+  "host": "stalwart-database-cluster-rw.stalwart-system.svc.cluster.local",
+  "port": 5432,
+  "database": "stalwart",
+  "authUsername": "stalwart",
+  "authSecret": {
+    "@type": "EnvironmentVariable",
+    "variableName": "STALWART_DB_PASSWORD"
+  },
+  "useTls": false,
+  "allowInvalidCerts": false,
+  "timeout": 15000,
+  "poolMaxConnections": 10
+}

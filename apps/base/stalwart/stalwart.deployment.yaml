@@ -15,14 +15,34 @@ spec:
         networking.tinyrack.net/floating-egress: "true"
     spec:
       initContainers:
-        - name: wait-for-floating-egress
-          image: busybox:1.38.0
+        - name: verify-floating-egress
+          image: curlimages/curl:8.21.0
           command:
             - sh
             - -ec
             - |
-              until [ "$(wget -qO- https://www.cloudflare.com/cdn-cgi/trace | sed -n 's/^ip=//p')" = "${EXPECTED_EGRESS_IP}" ]; do
-                echo "Waiting for Cilium Floating IP egress policy"
+              while true; do
+                observed_ip="$(
+                  curl \
+                    --fail \
+                    --silent \
+                    --show-error \
+                    --connect-timeout 3 \
+                    --max-time 5 \
+                    https://www.cloudflare.com/cdn-cgi/trace \
+                    | sed -n 's/^ip=//p' \
+                    || true
+                )"
+
+                if [ "${observed_ip}" = "${EXPECTED_EGRESS_IP}" ]; then
+                  echo "Cilium Floating IP egress is ready: ${observed_ip}"
+                  exit 0
+                fi
+
+                echo \
+                  "Waiting for Cilium Floating IP egress policy" \
+                  "(expected=${EXPECTED_EGRESS_IP}," \
+                  "observed=${observed_ip:-unavailable})"
                 sleep 3
               done
           env:
@@ -38,41 +58,12 @@ spec:
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 100
+            runAsGroup: 101
             capabilities:
               drop:
                 - ALL
-        - name: render-stalwart-config
-          image: busybox:1.38.0
-          command:
-            - sh
-            - -c
-            - |
-              cat > /config/config.json <<EOF
-              {
-                "@type": "PostgreSql",
-                "host": "stalwart-database-cluster-rw.stalwart-system.svc.cluster.local",
-                "port": 5432,
-                "database": "stalwart",
-                "authUsername": "stalwart",
-                "authSecret": {
-                  "@type": "Value",
-                  "secret": "${DATABASE_PASSWORD}"
-                },
-                "useTls": false,
-                "allowInvalidCerts": false,
-                "timeout": 15000,
-                "poolMaxConnections": 10
-              }
-              EOF
-          env:
-            - name: DATABASE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: stalwart-database-user-secret
-                  key: password
-          volumeMounts:
-            - name: stalwart-config-runtime
-              mountPath: /config
       containers:
         - name: stalwart
           image: stalwartlabs/stalwart:v0.16.20
@@ -110,13 +101,18 @@ spec:
             - containerPort: 110
             - containerPort: 995
           volumeMounts:
-            - name: stalwart-config-runtime
+            - name: stalwart-config
               mountPath: "/etc/stalwart/config.json"
               subPath: "config.json"
               readOnly: true
           env:
             - name: STALWART_PUBLIC_URL
               value: https://mail.winetree94.com
+            - name: STALWART_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: stalwart-database-user-secret
+                  key: password
             - name: AWS_ACCESS_KEY_ID
               valueFrom:
                 secretKeyRef:
@@ -128,5 +124,6 @@ spec:
                   name: tinyrack-s3-secret
                   key: AWS_SECRET_ACCESS_KEY
       volumes:
-        - name: stalwart-config-runtime
-          emptyDir: {}
+        - name: stalwart-config
+          configMap:
+            name: stalwart-config

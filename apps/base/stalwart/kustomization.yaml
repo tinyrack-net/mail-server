@@ -11,3 +11,8 @@ resources:
   - stalwart.web.service.yaml
   - stalwart.mail.service.yaml
   - stalwart.ingress-route.yaml
+configMapGenerator:
+  - name: stalwart-config
+    namespace: stalwart-system
+    files:
+      - config.json=stalwart.config.json
