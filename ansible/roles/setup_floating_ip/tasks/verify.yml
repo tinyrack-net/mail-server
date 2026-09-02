@@ -1,0 +1,48 @@
+---
+- name: Run Floating IP preflight checks before verification
+  ansible.builtin.import_tasks: preflight.yml
+
+- name: Read the effective Netplan addresses
+  ansible.builtin.command:
+    argv:
+      - /usr/sbin/netplan
+      - get
+      - "ethernets.{{ setup_floating_ip_interface }}.addresses"
+  register: setup_floating_ip_verified_netplan_addresses
+  changed_when: false
+
+- name: Read the active interface addresses
+  ansible.builtin.command:
+    argv:
+      - /usr/sbin/ip
+      - -4
+      - -o
+      - address
+      - show
+      - dev
+      - "{{ setup_floating_ip_interface }}"
+  register: setup_floating_ip_verified_active_addresses
+  changed_when: false
+
+- name: Read the default outbound route
+  ansible.builtin.command:
+    argv:
+      - /usr/sbin/ip
+      - -4
+      - route
+      - get
+      - 1.1.1.1
+  register: setup_floating_ip_verified_default_route
+  changed_when: false
+
+- name: Verify the Floating IP and unchanged default source selection
+  ansible.builtin.assert:
+    that:
+      - >-
+        setup_floating_ip_address ~ '/' ~ setup_floating_ip_prefix_length
+        in setup_floating_ip_verified_netplan_addresses.stdout
+      - >-
+        setup_floating_ip_address ~ '/' ~ setup_floating_ip_prefix_length
+        in setup_floating_ip_verified_active_addresses.stdout
+      - (' src ' ~ setup_floating_ip_address ~ ' ') not in (' ' ~ setup_floating_ip_verified_default_route.stdout ~ ' ')
+    fail_msg: The Floating IP is not persistent and active, or it replaced the default outbound source.

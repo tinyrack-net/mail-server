@@ -1,0 +1,8 @@
+---
+setup_floating_ip_address: 46.225.250.229
+setup_floating_ip_prefix_length: 32
+setup_floating_ip_interface: eth0
+setup_floating_ip_renderer: networkd
+setup_floating_ip_netplan_path: /etc/netplan/60-floating-ip.yaml
+setup_floating_ip_apply_timeout: 60
+setup_floating_ip_connection_timeout: 90

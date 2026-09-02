@@ -1,0 +1,50 @@
+---
+- name: Validate the Floating IP inputs
+  ansible.builtin.assert:
+    that:
+      - setup_floating_ip_address is match('^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$')
+      - setup_floating_ip_prefix_length == 32
+      - setup_floating_ip_interface in ansible_facts.interfaces
+      - setup_floating_ip_netplan_path | dirname == "/etc/netplan"
+      - setup_floating_ip_netplan_path is match('^/etc/netplan/.+\.ya?ml$')
+      - setup_floating_ip_apply_timeout > 0
+      - setup_floating_ip_connection_timeout > 0
+    fail_msg: A valid Floating IPv4 /32, existing interface, and /etc/netplan YAML path are required.
+
+- name: Inspect the Netplan executable
+  ansible.builtin.stat:
+    path: /usr/sbin/netplan
+  register: setup_floating_ip_netplan_executable
+
+- name: Gather network service facts
+  ansible.builtin.service_facts:
+
+- name: Require Netplan with systemd-networkd
+  ansible.builtin.assert:
+    that:
+      - setup_floating_ip_netplan_executable.stat.exists
+      - setup_floating_ip_netplan_executable.stat.executable
+      - ansible_facts.services["systemd-networkd.service"].state == "running"
+    fail_msg: Netplan and a running systemd-networkd service are required.
+
+- name: Inspect any existing Floating IP assignment
+  ansible.builtin.command:
+    argv:
+      - /usr/sbin/ip
+      - -4
+      - -o
+      - address
+      - show
+      - to
+      - "{{ setup_floating_ip_address }}/{{ setup_floating_ip_prefix_length }}"
+  register: setup_floating_ip_existing_assignment
+  changed_when: false
+  check_mode: false
+
+- name: Refuse a Floating IP assigned to a different interface
+  ansible.builtin.assert:
+    that:
+      - >-
+        setup_floating_ip_existing_assignment.stdout | length == 0
+        or (' ' ~ setup_floating_ip_interface ~ ' ') in setup_floating_ip_existing_assignment.stdout
+    fail_msg: The Floating IP is already assigned to a different interface.

@@ -1,0 +1,178 @@
+---
+- name: Run Floating IP preflight checks
+  ansible.builtin.import_tasks: preflight.yml
+
+- name: Inspect the active Floating IP
+  ansible.builtin.command:
+    argv:
+      - /usr/sbin/ip
+      - -4
+      - -o
+      - address
+      - show
+      - dev
+      - "{{ setup_floating_ip_interface }}"
+  register: setup_floating_ip_active_addresses_before_apply
+  changed_when: false
+  check_mode: false
+
+- name: Find the existing Netplan configuration files
+  ansible.builtin.find:
+    paths: /etc/netplan
+    patterns:
+      - "*.yaml"
+      - "*.yml"
+    file_type: file
+  register: setup_floating_ip_existing_netplan_files
+
+- name: Validate the merged Netplan configuration in an isolated root
+  block:
+    - name: Create an isolated Netplan validation root
+      ansible.builtin.tempfile:
+        state: directory
+        prefix: ansible-netplan-
+      register: setup_floating_ip_validation_root
+      changed_when: false
+      check_mode: false
+
+    - name: Create the isolated Netplan configuration directory
+      ansible.builtin.file:
+        path: "{{ setup_floating_ip_validation_root.path }}/etc/netplan"
+        state: directory
+        mode: "0700"
+      changed_when: false
+      check_mode: false
+
+    - name: Copy the existing Netplan configuration into the isolated root
+      ansible.builtin.copy:
+        src: "{{ item.path }}"
+        dest: "{{ setup_floating_ip_validation_root.path }}/etc/netplan/{{ item.path | basename }}"
+        remote_src: true
+        mode: preserve
+      loop: "{{ setup_floating_ip_existing_netplan_files.files }}"
+      loop_control:
+        label: "{{ item.path | basename }}"
+      changed_when: false
+      check_mode: false
+
+    - name: Render the Floating IP configuration into the isolated root
+      ansible.builtin.template:
+        src: floating-ip.yaml.j2
+        dest: >-
+          {{ setup_floating_ip_validation_root.path }}/etc/netplan/{{ setup_floating_ip_netplan_path | basename }}
+        owner: root
+        group: root
+        mode: "0600"
+      changed_when: false
+      check_mode: false
+
+    - name: Generate the isolated Netplan configuration
+      ansible.builtin.command:
+        argv:
+          - /usr/sbin/netplan
+          - generate
+          - --root-dir
+          - "{{ setup_floating_ip_validation_root.path }}"
+      changed_when: false
+      check_mode: false
+  always:
+    - name: Remove the isolated Netplan validation root
+      ansible.builtin.file:
+        path: "{{ setup_floating_ip_validation_root.path }}"
+        state: absent
+      when: setup_floating_ip_validation_root.path is defined
+      changed_when: false
+      check_mode: false
+
+- name: Configure the persistent Floating IP
+  ansible.builtin.template:
+    src: floating-ip.yaml.j2
+    dest: "{{ setup_floating_ip_netplan_path }}"
+    owner: root
+    group: root
+    mode: "0600"
+  register: setup_floating_ip_netplan_config
+
+- name: Validate the installed Netplan configuration
+  ansible.builtin.command:
+    argv:
+      - /usr/sbin/netplan
+      - generate
+  when: not ansible_check_mode or not setup_floating_ip_netplan_config.changed
+  changed_when: false
+  check_mode: false
+
+- name: Determine whether Netplan must be applied
+  ansible.builtin.set_fact:
+    setup_floating_ip_apply_required: >-
+      {{
+        setup_floating_ip_netplan_config.changed
+        or (
+          setup_floating_ip_address ~ '/' ~ setup_floating_ip_prefix_length
+          not in setup_floating_ip_active_addresses_before_apply.stdout
+        )
+      }}
+
+- name: Report a pending Floating IP application in check mode
+  ansible.builtin.debug:
+    msg: The Floating IP configuration would be applied with Netplan.
+  when:
+    - ansible_check_mode
+    - setup_floating_ip_apply_required
+  changed_when: true
+
+- name: Apply the Floating IP configuration asynchronously
+  ansible.builtin.command:
+    argv:
+      - /usr/sbin/netplan
+      - apply
+  when:
+    - not ansible_check_mode
+    - setup_floating_ip_apply_required
+  async: "{{ setup_floating_ip_apply_timeout }}"
+  poll: 0
+  register: setup_floating_ip_apply_job
+  changed_when: true
+
+- name: Wait for the host connection after applying Netplan
+  ansible.builtin.wait_for_connection:
+    delay: 2
+    timeout: "{{ setup_floating_ip_connection_timeout }}"
+  when:
+    - not ansible_check_mode
+    - setup_floating_ip_apply_required
+
+- name: Wait for the Netplan apply job to complete
+  ansible.builtin.async_status:
+    jid: "{{ setup_floating_ip_apply_job.ansible_job_id }}"
+  when:
+    - not ansible_check_mode
+    - setup_floating_ip_apply_required
+  register: setup_floating_ip_apply_result
+  until: setup_floating_ip_apply_result.finished
+  retries: "{{ (setup_floating_ip_apply_timeout / 2) | int }}"
+  delay: 2
+  changed_when: false
+
+- name: Read the active Floating IP after applying Netplan
+  ansible.builtin.command:
+    argv:
+      - /usr/sbin/ip
+      - -4
+      - -o
+      - address
+      - show
+      - dev
+      - "{{ setup_floating_ip_interface }}"
+  when: not ansible_check_mode
+  register: setup_floating_ip_active_addresses_after_apply
+  changed_when: false
+
+- name: Require the Floating IP to be active after applying Netplan
+  ansible.builtin.assert:
+    that:
+      - >-
+        setup_floating_ip_address ~ '/' ~ setup_floating_ip_prefix_length
+        in setup_floating_ip_active_addresses_after_apply.stdout
+    fail_msg: The Floating IP is not active on the managed interface after Netplan apply.
+  when: not ansible_check_mode

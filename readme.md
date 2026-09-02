@@ -68,6 +68,12 @@ sudo tailscale up \
   --reset
 ```
 
+### Hetzner Floating IP
+
+Ansible persistently configures `46.225.250.229/32` as a secondary address on
+`eth0` using `/etc/netplan/60-floating-ip.yaml`. The primary address, default
+route, DHCP, and IPv6 configuration remain managed by Hetzner cloud-init.
+
 ### K3s and Sealed Secrets key
 
 Store the become password and the private key matching

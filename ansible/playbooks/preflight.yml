@@ -5,6 +5,13 @@
   become: false
 
   tasks:
+    - name: Run Floating IP preflight checks
+      ansible.builtin.include_role:
+        name: setup_floating_ip
+        tasks_from: preflight
+        apply:
+          become: true
+
     - name: Run K3s server preflight checks
       ansible.builtin.include_role:
         name: setup_k3s_server

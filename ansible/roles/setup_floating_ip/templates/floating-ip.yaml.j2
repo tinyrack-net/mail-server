@@ -1,0 +1,8 @@
+---
+network:
+  version: 2
+  renderer: {{ setup_floating_ip_renderer }}
+  ethernets:
+    {{ setup_floating_ip_interface }}:
+      addresses:
+        - {{ setup_floating_ip_address }}/{{ setup_floating_ip_prefix_length }}

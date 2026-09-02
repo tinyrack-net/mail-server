@@ -1,0 +1,28 @@
+---
+argument_specs:
+  main:
+    short_description: Configure a persistent Hetzner Floating IPv4 address with Netplan
+    options:
+      setup_floating_ip_address:
+        type: str
+        required: true
+      setup_floating_ip_prefix_length:
+        type: int
+        required: true
+      setup_floating_ip_interface:
+        type: str
+        required: true
+      setup_floating_ip_renderer:
+        type: str
+        required: true
+        choices:
+          - networkd
+      setup_floating_ip_netplan_path:
+        type: path
+        required: true
+      setup_floating_ip_apply_timeout:
+        type: int
+        required: true
+      setup_floating_ip_connection_timeout:
+        type: int
+        required: true
