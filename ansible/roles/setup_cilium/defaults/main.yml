@@ -12,5 +12,4 @@ setup_cilium_k8s_service_port: 6443
 setup_cilium_device: eth0
 setup_cilium_floating_ip: 46.225.250.229
 setup_cilium_values_path: /tmp/mail-server-cilium-values.yaml
-setup_cilium_marker_path: /etc/rancher/k3s/cilium-migrated
 setup_cilium_ready_timeout: 10m
