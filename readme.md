@@ -68,26 +68,27 @@ sudo tailscale up \
   --reset
 ```
 
-### K3s
+### K3s and Sealed Secrets key
+
+Store the become password and the private key matching
+`tinyrack-production-key.crt` in the Ansible Vault, then let Ansible prepare
+everything up to the Flux boundary:
 
 ```bash
-curl -fL https://get.k3s.io | \
-sh -s - server \
-  --cluster-init \
-  --cluster-cidr=10.57.0.0/16 \
-  --service-cidr=10.58.0.0/16 \
-  --tls-san=100.127.220.52 \
-  --tls-san=mail-server.time-inconnu.ts.net
+cd ansible
+make vault-edit
+make preflight
+make check
+make apply
+make apply
+make verify
+cd ..
 ```
 
-### Sealed Secrets key
-
-```bash
-kubectl create namespace sealed-secrets
-kubectl -n sealed-secrets apply -f ./main.key.yaml --force
-```
-
-> The committed certificate is public. This restore step needs the private key backup.
+The first apply normalizes the host packages, inotify limits, and K3s
+configuration and may restart K3s once. The second apply must report no changes.
+Ansible refuses to overwrite an existing Sealed Secrets recovery key when it
+does not match the Vault values.
 
 ### Flux
 

@@ -1,0 +1,103 @@
+---
+- name: Run preflight checks before verification
+  ansible.builtin.import_tasks: preflight.yml
+
+- name: Gather installed package facts
+  ansible.builtin.package_facts:
+    manager: auto
+
+- name: Gather service facts
+  ansible.builtin.service_facts:
+
+- name: Read the persisted K3s inotify limits
+  ansible.builtin.slurp:
+    src: "{{ setup_k3s_server_inotify_sysctl_path }}"
+  register: setup_k3s_server_inotify_sysctl_file
+
+- name: Read the active K3s inotify limits
+  ansible.builtin.command:
+    argv:
+      - /usr/sbin/sysctl
+      - -n
+      - "{{ item.key }}"
+  loop: "{{ setup_k3s_server_inotify_settings | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  register: setup_k3s_server_active_inotify_settings
+  changed_when: false
+
+- name: Verify the persisted and active K3s inotify limits
+  ansible.builtin.assert:
+    that:
+      - >-
+        (item.item.key ~ ' = ' ~ item.item.value)
+        in (setup_k3s_server_inotify_sysctl_file.content | b64decode).splitlines()
+      - item.stdout | int == item.item.value
+    fail_msg: "The {{ item.item.key }} inotify limit does not match the managed value."
+  loop: "{{ setup_k3s_server_active_inotify_settings.results }}"
+  loop_control:
+    label: "{{ item.item.key }}"
+
+- name: Read the installed K3s version
+  ansible.builtin.command:
+    cmd: /usr/local/bin/k3s --version
+  register: setup_k3s_server_verified_version
+  changed_when: false
+
+- name: Read the K3s configuration
+  ansible.builtin.slurp:
+    src: "{{ setup_k3s_server_config_path }}"
+  register: setup_k3s_server_verified_config_file
+
+- name: Query the K3s node
+  ansible.builtin.command:
+    cmd: /usr/local/bin/k3s kubectl get node --no-headers
+  register: setup_k3s_server_node
+  changed_when: false
+
+- name: Query the Traefik deployment
+  ansible.builtin.command:
+    cmd: /usr/local/bin/k3s kubectl get deployment traefik --namespace kube-system
+  register: setup_k3s_server_traefik
+  changed_when: false
+
+- name: Query the ServiceLB daemon set
+  ansible.builtin.command:
+    cmd: /usr/local/bin/k3s kubectl get daemonset --namespace kube-system --selector=svccontroller.k3s.cattle.io/svcname
+  register: setup_k3s_server_servicelb
+  changed_when: false
+
+- name: Decode the K3s configuration
+  ansible.builtin.set_fact:
+    setup_k3s_server_verified_config: >-
+      {{ setup_k3s_server_verified_config_file.content | b64decode | from_yaml }}
+
+- name: Verify the K3s server state
+  ansible.builtin.assert:
+    that:
+      - setup_k3s_server_packages | difference(ansible_facts.packages.keys() | list) | length == 0
+      - setup_k3s_server_version in setup_k3s_server_verified_version.stdout
+      - ansible_facts.services["k3s.service"].state == "running"
+      - >-
+        setup_k3s_server_verified_config["cluster-init"] | default(false)
+        or '--cluster-init' in setup_k3s_server_existing_service_unit
+      - >-
+        setup_k3s_server_verified_config["cluster-cidr"] | default('') == setup_k3s_server_cluster_cidr
+        or ('--cluster-cidr=' ~ setup_k3s_server_cluster_cidr) in setup_k3s_server_existing_service_unit
+      - >-
+        setup_k3s_server_verified_config["service-cidr"] | default('') == setup_k3s_server_service_cidr
+        or ('--service-cidr=' ~ setup_k3s_server_service_cidr) in setup_k3s_server_existing_service_unit
+      - setup_k3s_server_verified_config.disable | default([]) == setup_k3s_server_disabled_components
+      - "' Ready ' in (' ' ~ setup_k3s_server_node.stdout ~ ' ')"
+      - setup_k3s_server_traefik.rc == 0
+      - setup_k3s_server_servicelb.stdout_lines | length > 1
+    fail_msg: The K3s server does not match the managed configuration.
+
+- name: Verify each K3s TLS SAN
+  ansible.builtin.assert:
+    that:
+      - >-
+        item in (setup_k3s_server_verified_config["tls-san"] | default([]))
+        or ('--tls-san=' ~ item) in setup_k3s_server_existing_service_unit
+    fail_msg: "The {{ item }} TLS SAN is missing from the effective K3s configuration."
+  loop: "{{ setup_k3s_server_tls_sans }}"
