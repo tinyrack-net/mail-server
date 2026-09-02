@@ -6,7 +6,6 @@ resources:
   - stalwart.database.user.secret.yaml
   - stalwart.database.yaml
   - stalwart.backup-cleanup.yaml
-  - stalwart.smtp2go.secret.yaml
   - stalwart.deployment.yaml
   - stalwart.egress-gateway.yaml
   - stalwart.web.service.yaml
