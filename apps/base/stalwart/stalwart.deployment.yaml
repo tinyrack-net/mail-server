@@ -90,16 +90,6 @@ spec:
           env:
             - name: STALWART_PUBLIC_URL
               value: https://mail.winetree94.com
-            - name: ADMIN_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: stalwart-secret
-                  key: admin-username
-            - name: ADMIN_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: stalwart-secret
-                  key: admin-secret
             - name: SMTP2GO_USERNAME
               valueFrom:
                 secretKeyRef:
@@ -110,11 +100,6 @@ spec:
                 secretKeyRef:
                   name: stalwart-smtp2go-secret
                   key: SMTP2GO_PASSWORD
-            - name: DATABASE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: stalwart-database-user-secret
-                  key: password
             - name: AWS_ACCESS_KEY_ID
               valueFrom:
                 secretKeyRef:
