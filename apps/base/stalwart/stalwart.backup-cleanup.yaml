@@ -188,7 +188,7 @@ spec:
                 - name: FAILED_RETENTION_DAYS
                   value: "7"
                 - name: DRY_RUN
-                  value: "true"
+                  value: "false"
                 - name: PYTHONDONTWRITEBYTECODE
                   value: "1"
                 - name: PYTHONUNBUFFERED
