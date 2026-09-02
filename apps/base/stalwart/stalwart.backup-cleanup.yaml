@@ -31,11 +31,14 @@ subjects:
 apiVersion: policies.kyverno.io/v1
 kind: NamespacedDeletingPolicy
 metadata:
-  name: stalwart-backup-cleanup
+  name: stalwart-completed-backup-cleanup
   namespace: stalwart-system
 spec:
   schedule: "15 5 * * *"
   matchConstraints:
+    objectSelector:
+      matchLabels:
+        cnpg.io/scheduled-backup: stalwart-backup
     resourceRules:
       - apiGroups:
           - postgresql.cnpg.io
@@ -47,14 +50,42 @@ spec:
           - backups
         scope: Namespaced
   conditions:
-    - name: expired-scheduled-backup
+    - name: completed
       expression: >-
-        has(object.metadata.labels) &&
-        "cnpg.io/scheduled-backup" in object.metadata.labels &&
-        object.metadata.labels["cnpg.io/scheduled-backup"] == "stalwart-backup" &&
-        has(object.status) &&
-        has(object.status.phase) &&
-        ((object.status.phase == "completed" &&
-          time.now() - timestamp(object.metadata.creationTimestamp) > duration("840h")) ||
-         (object.status.phase == "failed" &&
-          time.now() - timestamp(object.metadata.creationTimestamp) > duration("168h")))
+        has(object.status) && has(object.status.phase) &&
+        object.status.phase == "completed"
+    - name: older-than-35-days
+      expression: >-
+        time.now() - timestamp(object.metadata.creationTimestamp)
+        > duration("840h")
+---
+apiVersion: policies.kyverno.io/v1
+kind: NamespacedDeletingPolicy
+metadata:
+  name: stalwart-failed-backup-cleanup
+  namespace: stalwart-system
+spec:
+  schedule: "15 5 * * *"
+  matchConstraints:
+    objectSelector:
+      matchLabels:
+        cnpg.io/scheduled-backup: stalwart-backup
+    resourceRules:
+      - apiGroups:
+          - postgresql.cnpg.io
+        apiVersions:
+          - v1
+        operations:
+          - "*"
+        resources:
+          - backups
+        scope: Namespaced
+  conditions:
+    - name: failed
+      expression: >-
+        has(object.status) && has(object.status.phase) &&
+        object.status.phase == "failed"
+    - name: older-than-7-days
+      expression: >-
+        time.now() - timestamp(object.metadata.creationTimestamp)
+        > duration("168h")
