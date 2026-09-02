@@ -4,6 +4,9 @@ metadata:
   name: stalwart
   namespace: flux-system
 spec:
+  dependsOn:
+    - name: cloudnative-pg
+    - name: kyverno
   interval: 15m
   path: ./apps/base/stalwart
   prune: true

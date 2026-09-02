@@ -1,118 +1,3 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: stalwart-backup-cleanup
-  namespace: stalwart-system
-data:
-  cleanup.py: |
-    import datetime
-    import json
-    import os
-    import ssl
-    import urllib.error
-    import urllib.parse
-    import urllib.request
-
-    namespace = os.environ["NAMESPACE"]
-    scheduled_backup = os.environ["SCHEDULED_BACKUP"]
-    dry_run = os.environ.get("DRY_RUN", "true").lower() == "true"
-    completed_retention = datetime.timedelta(
-        days=int(os.environ["COMPLETED_RETENTION_DAYS"])
-    )
-    failed_retention = datetime.timedelta(
-        days=int(os.environ["FAILED_RETENTION_DAYS"])
-    )
-
-    service_account_path = "/var/run/secrets/kubernetes.io/serviceaccount"
-    with open(f"{service_account_path}/token", encoding="utf-8") as token_file:
-        token = token_file.read().strip()
-
-    api_server = (
-        f"https://{os.environ['KUBERNETES_SERVICE_HOST']}:"
-        f"{os.environ['KUBERNETES_SERVICE_PORT_HTTPS']}"
-    )
-    api_path = (
-        f"/apis/postgresql.cnpg.io/v1/namespaces/{namespace}/backups"
-    )
-    query = urllib.parse.urlencode(
-        {"labelSelector": f"cnpg.io/scheduled-backup={scheduled_backup}"}
-    )
-    collection_url = f"{api_server}{api_path}?{query}"
-    ssl_context = ssl.create_default_context(
-        cafile=f"{service_account_path}/ca.crt"
-    )
-    headers = {
-        "Accept": "application/json",
-        "Authorization": f"Bearer {token}",
-    }
-
-    def request_json(url, method="GET"):
-        request = urllib.request.Request(url, headers=headers, method=method)
-        try:
-            with urllib.request.urlopen(request, context=ssl_context) as response:
-                if response.status == 204:
-                    return None
-                return json.load(response)
-        except urllib.error.HTTPError as error:
-            if method == "DELETE" and error.code == 404:
-                return None
-            raise
-
-    now = datetime.datetime.now(datetime.timezone.utc)
-    candidates = []
-    skipped = {"recent": 0, "protected_phase": 0}
-
-    for backup in request_json(collection_url)["items"]:
-        name = backup["metadata"]["name"]
-        created_at = datetime.datetime.fromisoformat(
-            backup["metadata"]["creationTimestamp"].replace("Z", "+00:00")
-        )
-        phase = backup.get("status", {}).get("phase", "unknown")
-
-        if phase == "completed":
-            retention = completed_retention
-        elif phase == "failed":
-            retention = failed_retention
-        else:
-            skipped["protected_phase"] += 1
-            continue
-
-        if now - created_at <= retention:
-            skipped["recent"] += 1
-            continue
-
-        candidates.append((name, phase, created_at.isoformat()))
-
-    for name, phase, created_at in candidates:
-        print(
-            json.dumps(
-                {
-                    "action": "would-delete" if dry_run else "delete",
-                    "name": name,
-                    "phase": phase,
-                    "createdAt": created_at,
-                }
-            )
-        )
-        if not dry_run:
-            request_json(f"{api_server}{api_path}/{name}", method="DELETE")
-
-    print(
-        json.dumps(
-            {
-                "dryRun": dry_run,
-                "candidates": len(candidates),
-                "skipped": skipped,
-            }
-        )
-    )
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: stalwart-backup-cleanup
-  namespace: stalwart-system
----
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
@@ -126,6 +11,7 @@ rules:
     verbs:
       - get
       - list
+      - watch
       - delete
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -139,78 +25,36 @@ roleRef:
   name: stalwart-backup-cleanup
 subjects:
   - kind: ServiceAccount
-    name: stalwart-backup-cleanup
-    namespace: stalwart-system
+    name: kyverno-cleanup-controller
+    namespace: kyverno
 ---
-apiVersion: batch/v1
-kind: CronJob
+apiVersion: policies.kyverno.io/v1
+kind: NamespacedDeletingPolicy
 metadata:
   name: stalwart-backup-cleanup
   namespace: stalwart-system
 spec:
   schedule: "15 5 * * *"
-  timeZone: Etc/UTC
-  concurrencyPolicy: Forbid
-  startingDeadlineSeconds: 3600
-  successfulJobsHistoryLimit: 1
-  failedJobsHistoryLimit: 3
-  jobTemplate:
-    spec:
-      activeDeadlineSeconds: 300
-      backoffLimit: 1
-      ttlSecondsAfterFinished: 86400
-      template:
-        spec:
-          serviceAccountName: stalwart-backup-cleanup
-          restartPolicy: Never
-          securityContext:
-            runAsNonRoot: true
-            runAsUser: 65532
-            runAsGroup: 65532
-            seccompProfile:
-              type: RuntimeDefault
-          containers:
-            - name: cleanup
-              image: python:3.13-alpine
-              imagePullPolicy: IfNotPresent
-              command:
-                - python
-                - /opt/cleanup/cleanup.py
-              env:
-                - name: NAMESPACE
-                  valueFrom:
-                    fieldRef:
-                      fieldPath: metadata.namespace
-                - name: SCHEDULED_BACKUP
-                  value: stalwart-backup
-                - name: COMPLETED_RETENTION_DAYS
-                  value: "35"
-                - name: FAILED_RETENTION_DAYS
-                  value: "7"
-                - name: DRY_RUN
-                  value: "false"
-                - name: PYTHONDONTWRITEBYTECODE
-                  value: "1"
-                - name: PYTHONUNBUFFERED
-                  value: "1"
-              resources:
-                requests:
-                  cpu: 10m
-                  memory: 32Mi
-                limits:
-                  cpu: 100m
-                  memory: 64Mi
-              securityContext:
-                allowPrivilegeEscalation: false
-                readOnlyRootFilesystem: true
-                capabilities:
-                  drop:
-                    - ALL
-              volumeMounts:
-                - name: cleanup-script
-                  mountPath: /opt/cleanup
-                  readOnly: true
-          volumes:
-            - name: cleanup-script
-              configMap:
-                name: stalwart-backup-cleanup
+  matchConstraints:
+    resourceRules:
+      - apiGroups:
+          - postgresql.cnpg.io
+        apiVersions:
+          - v1
+        operations:
+          - "*"
+        resources:
+          - backups
+        scope: Namespaced
+  conditions:
+    - name: expired-scheduled-backup
+      expression: >-
+        has(object.metadata.labels) &&
+        "cnpg.io/scheduled-backup" in object.metadata.labels &&
+        object.metadata.labels["cnpg.io/scheduled-backup"] == "stalwart-backup" &&
+        has(object.status) &&
+        has(object.status.phase) &&
+        ((object.status.phase == "completed" &&
+          time.now() - timestamp(object.metadata.creationTimestamp) > duration("840h")) ||
+         (object.status.phase == "failed" &&
+          time.now() - timestamp(object.metadata.creationTimestamp) > duration("168h")))
