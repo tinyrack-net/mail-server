@@ -2,10 +2,14 @@
 setup_k3s_server_version: v1.36.4+k3s1
 setup_k3s_server_cluster_cidr: 10.57.0.0/16
 setup_k3s_server_service_cidr: 10.58.0.0/16
+setup_k3s_server_node_ip: 46.224.117.106
 setup_k3s_server_tls_sans:
   - 100.127.220.52
   - mail-server.time-inconnu.ts.net
 setup_k3s_server_disabled_components: []
+setup_k3s_server_flannel_backend: none
+setup_k3s_server_disable_network_policy: true
+setup_k3s_server_disable_kube_proxy: true
 setup_k3s_server_inotify_settings:
   fs.inotify.max_queued_events: 32768
   fs.inotify.max_user_instances: 8192

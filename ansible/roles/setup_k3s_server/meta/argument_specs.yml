@@ -12,6 +12,9 @@ argument_specs:
       setup_k3s_server_service_cidr:
         type: str
         required: true
+      setup_k3s_server_node_ip:
+        type: str
+        required: true
       setup_k3s_server_tls_sans:
         type: list
         elements: str
@@ -19,6 +22,13 @@ argument_specs:
       setup_k3s_server_disabled_components:
         type: list
         elements: str
+      setup_k3s_server_flannel_backend:
+        type: str
+        choices: [none]
+      setup_k3s_server_disable_network_policy:
+        type: bool
+      setup_k3s_server_disable_kube_proxy:
+        type: bool
         required: true
       setup_k3s_server_inotify_settings:
         type: dict

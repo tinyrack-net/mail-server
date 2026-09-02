@@ -1,0 +1,28 @@
+cluster:
+  name: {{ setup_cilium_cluster_name }}
+  id: 0
+k8sServiceHost: {{ setup_cilium_k8s_service_host }}
+k8sServicePort: {{ setup_cilium_k8s_service_port }}
+kubeProxyReplacement: true
+identityAllocationMode: crd
+operator:
+  replicas: 1
+ipam:
+  mode: cluster-pool
+  operator:
+    clusterPoolIPv4PodCIDRList:
+      - {{ setup_cilium_cluster_cidr }}
+    clusterPoolIPv4MaskSize: {{ setup_cilium_cluster_pool_mask_size }}
+routingMode: tunnel
+tunnelProtocol: vxlan
+bpf:
+  masquerade: true
+egressGateway:
+  enabled: true
+devices: {{ setup_cilium_device }}
+cni:
+  exclusive: true
+  uninstall: false
+policyEnforcementMode: default
+hubble:
+  enabled: false

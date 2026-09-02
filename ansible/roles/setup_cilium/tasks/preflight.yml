@@ -1,0 +1,44 @@
+---
+- name: Validate Cilium inputs
+  ansible.builtin.assert:
+    that:
+      - setup_cilium_version == '1.20.1'
+      - ansible_facts.kernel is version('5.10', '>=')
+      - ansible_facts.architecture == 'x86_64'
+    fail_msg: Cilium requires the pinned version, matching K3s CIDR/interface, and a supported kernel.
+
+- name: Verify the Cilium network device exists
+  ansible.builtin.command:
+    argv: [/usr/sbin/ip, link, show, dev, "{{ setup_cilium_device }}"]
+  changed_when: false
+  check_mode: false
+
+- name: Verify the Floating IP exists on the Cilium network device
+  ansible.builtin.command:
+    argv: [/usr/sbin/ip, -4, address, show, dev, "{{ setup_cilium_device }}"]
+  register: setup_cilium_device_addresses
+  changed_when: false
+  check_mode: false
+
+- name: Require the Floating IP before installing Cilium
+  ansible.builtin.assert:
+    that:
+      - setup_cilium_floating_ip in setup_cilium_device_addresses.stdout
+    fail_msg: The Floating IP must be configured before Cilium is installed.
+
+- name: Check the local Helm client
+  ansible.builtin.command:
+    argv: [helm, version, --short]
+  delegate_to: localhost
+  become: false
+  register: setup_cilium_helm_version
+  changed_when: false
+  check_mode: false
+
+- name: Check the target Kubernetes context
+  ansible.builtin.command:
+    argv: [kubectl, --context, "{{ setup_cilium_kube_context }}", get, node, mail-server]
+  delegate_to: localhost
+  become: false
+  changed_when: false
+  check_mode: false

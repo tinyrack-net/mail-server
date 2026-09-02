@@ -12,8 +12,35 @@ spec:
     metadata:
       labels:
         app: stalwart
+        networking.tinyrack.net/floating-egress: "true"
     spec:
       initContainers:
+        - name: wait-for-floating-egress
+          image: busybox:1.38.0
+          command:
+            - sh
+            - -ec
+            - |
+              until [ "$(wget -qO- https://www.cloudflare.com/cdn-cgi/trace | sed -n 's/^ip=//p')" = "${EXPECTED_EGRESS_IP}" ]; do
+                echo "Waiting for Cilium Floating IP egress policy"
+                sleep 3
+              done
+          env:
+            - name: EXPECTED_EGRESS_IP
+              value: 46.225.250.229
+          resources:
+            requests:
+              cpu: 5m
+              memory: 8Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
         - name: render-stalwart-config
           image: busybox:1.38.0
           command:

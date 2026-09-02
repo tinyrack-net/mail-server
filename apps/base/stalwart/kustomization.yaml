@@ -8,6 +8,7 @@ resources:
   - stalwart.backup-cleanup.yaml
   - stalwart.smtp2go.secret.yaml
   - stalwart.deployment.yaml
+  - stalwart.egress-gateway.yaml
   - stalwart.web.service.yaml
   - stalwart.mail.service.yaml
   - stalwart.ingress-route.yaml

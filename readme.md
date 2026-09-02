@@ -39,6 +39,15 @@ Exposed mail protocols are managed through the `stalwart-mail-service` LoadBalan
 - POP3: `110`, `995`
 - ManageSieve: `4190`
 
+## Cilium and mail egress
+
+- K3s uses Cilium `1.20.1` with Pod CIDR `10.57.0.0/16`.
+- Stalwart external IPv4 traffic leaves through Floating IP `46.225.250.229`.
+- The A record for `mail.winetree94.com` and the Floating IP PTR must match.
+- Run the one-time migration with `cd ansible && make preflight && make cni-migrate`.
+- After migration, use `make check`, `make apply`, and `make verify` for normal management.
+- In Stalwart, route local domains to `local`, external domains to IPv4-only `mx`, and use `mail.winetree94.com` as the EHLO hostname.
+
 ## Disaster Recovery
 
 The recovery goal is to install K3s on a new node, restore the Sealed Secrets key, and let Flux recreate the cluster state from this repository.
@@ -85,6 +94,7 @@ cd ansible
 make vault-edit
 make preflight
 make check
+make cni-migrate # first Flannel-to-Cilium migration only
 make apply
 make apply
 make verify

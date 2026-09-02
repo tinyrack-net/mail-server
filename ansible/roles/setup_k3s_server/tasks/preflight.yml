@@ -12,7 +12,11 @@
     that:
       - setup_k3s_server_version | length > 0
       - setup_k3s_server_cluster_cidr != setup_k3s_server_service_cidr
+      - setup_k3s_server_node_ip == '46.224.117.106'
       - setup_k3s_server_tls_sans | length > 0
+      - setup_k3s_server_flannel_backend == 'none'
+      - setup_k3s_server_disable_network_policy | bool
+      - setup_k3s_server_disable_kube_proxy | bool
       - >-
         ['fs.inotify.max_queued_events', 'fs.inotify.max_user_instances', 'fs.inotify.max_user_watches']
         | difference(setup_k3s_server_inotify_settings.keys() | list)

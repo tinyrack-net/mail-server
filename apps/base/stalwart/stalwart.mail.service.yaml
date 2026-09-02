@@ -5,6 +5,8 @@ metadata:
   namespace: stalwart-system
 spec:
   type: LoadBalancer
+  externalIPs:
+    - 46.225.250.229
   selector:
     app: stalwart
   ports:

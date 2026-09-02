@@ -48,7 +48,15 @@
                 (['cluster-init'] if '--cluster-init' in setup_k3s_server_existing_service_unit else [])
                 + (['cluster-cidr'] if '--cluster-cidr=' in setup_k3s_server_existing_service_unit else [])
                 + (['service-cidr'] if '--service-cidr=' in setup_k3s_server_existing_service_unit else [])
+                + (['node-ip'] if '--node-ip=' in setup_k3s_server_existing_service_unit else [])
                 + (['tls-san'] if '--tls-san=' in setup_k3s_server_existing_service_unit else [])
+                + (['flannel-backend'] if '--flannel-backend=' in setup_k3s_server_existing_service_unit else [])
+                + (
+                  ['disable-network-policy']
+                  if '--disable-network-policy' in setup_k3s_server_existing_service_unit
+                  else []
+                )
+                + (['disable-kube-proxy'] if '--disable-kube-proxy' in setup_k3s_server_existing_service_unit else [])
               )
             )
           | items2dict
@@ -69,6 +77,11 @@
             else {}
           )
         | combine(
+            {'node-ip': setup_k3s_server_node_ip}
+            if '--node-ip=' not in setup_k3s_server_existing_service_unit
+            else {}
+          )
+        | combine(
             {'tls-san': setup_k3s_server_tls_sans}
             if '--tls-san=' not in setup_k3s_server_existing_service_unit
             else {}
@@ -76,6 +89,21 @@
         | combine(
             {'disable': setup_k3s_server_disabled_components}
             if setup_k3s_server_disabled_components | length > 0
+            else {}
+          )
+        | combine(
+            {'flannel-backend': setup_k3s_server_flannel_backend}
+            if '--flannel-backend=' not in setup_k3s_server_existing_service_unit
+            else {}
+          )
+        | combine(
+            {'disable-network-policy': setup_k3s_server_disable_network_policy}
+            if '--disable-network-policy' not in setup_k3s_server_existing_service_unit
+            else {}
+          )
+        | combine(
+            {'disable-kube-proxy': setup_k3s_server_disable_kube_proxy}
+            if '--disable-kube-proxy' not in setup_k3s_server_existing_service_unit
             else {}
           )
       }}

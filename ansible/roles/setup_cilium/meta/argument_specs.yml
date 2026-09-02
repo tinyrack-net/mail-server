@@ -1,0 +1,17 @@
+---
+argument_specs:
+  main:
+    short_description: Install and manage Cilium for K3s
+    options:
+      setup_cilium_version:
+        type: str
+        required: true
+      setup_cilium_cluster_cidr:
+        type: str
+        required: true
+      setup_cilium_device:
+        type: str
+        required: true
+      setup_cilium_kube_context:
+        type: str
+        required: true

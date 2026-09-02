@@ -1,0 +1,92 @@
+---
+- name: Run Cilium preflight checks
+  ansible.builtin.import_tasks: preflight.yml
+
+- name: Render pinned Cilium Helm values locally
+  ansible.builtin.template:
+    src: values.yaml.j2
+    dest: "{{ setup_cilium_values_path }}"
+    mode: "0600"
+  delegate_to: localhost
+  become: false
+  register: setup_cilium_values
+
+- name: Read the installed Cilium release
+  ansible.builtin.command:
+    argv:
+      - helm
+      - --kube-context
+      - "{{ setup_cilium_kube_context }}"
+      - status
+      - "{{ setup_cilium_release_name }}"
+      - --namespace
+      - "{{ setup_cilium_namespace }}"
+  delegate_to: localhost
+  become: false
+  register: setup_cilium_release
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Read the installed Cilium chart version
+  ansible.builtin.command:
+    argv:
+      - helm
+      - --kube-context
+      - "{{ setup_cilium_kube_context }}"
+      - list
+      - --namespace
+      - "{{ setup_cilium_namespace }}"
+      - --filter
+      - ^cilium$
+      - --output
+      - json
+  delegate_to: localhost
+  become: false
+  register: setup_cilium_releases
+  changed_when: false
+  check_mode: false
+
+- name: Detect whether Cilium needs an upgrade
+  ansible.builtin.set_fact:
+    setup_cilium_needs_upgrade: >-
+      {{
+        setup_cilium_release.rc != 0
+        or (setup_cilium_releases.stdout | from_json | length) != 1
+        or (setup_cilium_releases.stdout | from_json | first).chart != ('cilium-' ~ setup_cilium_version)
+        or setup_cilium_values.changed
+      }}
+
+- name: Install or upgrade the pinned Cilium release
+  ansible.builtin.command:
+    argv:
+      - helm
+      - --kube-context
+      - "{{ setup_cilium_kube_context }}"
+      - upgrade
+      - --install
+      - "{{ setup_cilium_release_name }}"
+      - "{{ setup_cilium_chart }}"
+      - --version
+      - "{{ setup_cilium_version }}"
+      - --namespace
+      - "{{ setup_cilium_namespace }}"
+      - --values
+      - "{{ setup_cilium_values_path }}"
+      - --wait
+      - --timeout
+      - "{{ setup_cilium_ready_timeout }}"
+  delegate_to: localhost
+  become: false
+  when:
+    - setup_cilium_needs_upgrade
+    - not ansible_check_mode
+  changed_when: true
+
+- name: Report a pending Cilium installation in check mode
+  ansible.builtin.debug:
+    msg: Cilium would be installed or upgraded.
+  when:
+    - setup_cilium_needs_upgrade
+    - ansible_check_mode
+  changed_when: true

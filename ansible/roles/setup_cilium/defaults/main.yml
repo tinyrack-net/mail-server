@@ -1,0 +1,16 @@
+---
+setup_cilium_version: 1.20.1
+setup_cilium_release_name: cilium
+setup_cilium_namespace: kube-system
+setup_cilium_chart: oci://quay.io/cilium/charts/cilium
+setup_cilium_kube_context: mail-server
+setup_cilium_cluster_name: mail-server
+setup_cilium_cluster_cidr: 10.57.0.0/16
+setup_cilium_cluster_pool_mask_size: 24
+setup_cilium_k8s_service_host: 127.0.0.1
+setup_cilium_k8s_service_port: 6443
+setup_cilium_device: eth0
+setup_cilium_floating_ip: 46.225.250.229
+setup_cilium_values_path: /tmp/mail-server-cilium-values.yaml
+setup_cilium_marker_path: /etc/rancher/k3s/cilium-migrated
+setup_cilium_ready_timeout: 10m
