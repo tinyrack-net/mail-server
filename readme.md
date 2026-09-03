@@ -92,13 +92,15 @@ route, DHCP, and IPv6 configuration remain managed by Hetzner cloud-init.
 
 ### K3s and Sealed Secrets key
 
-Store the become password and the private key matching
-`tinyrack-production-key.crt` in the Ansible Vault, then let Ansible prepare
-everything up to the Flux boundary:
+Store the become password in the Ansible Vault. Back up every active Sealed
+Secrets controller key after initial installation and after each automatic key
+renewal. The backup command writes only encrypted key material to Git and
+refreshes `tinyrack-production-key.crt` with the current sealing certificate:
 
 ```bash
 cd ansible
 make vault-edit
+make sealed-secrets-key-backup
 make preflight
 make check
 make apply
@@ -111,8 +113,10 @@ The first apply configures the Floating IP, normalizes the host packages and
 K3s configuration, bootstraps Cilium when Flux is absent, and may restart K3s
 once. If the Flux Cilium HelmRelease already exists, Ansible only waits for it
 to become Ready. The second apply must report no changes.
-Ansible refuses to overwrite an existing Sealed Secrets recovery key when it
-does not match the Vault values.
+Ansible restores every backed-up recovery key and refuses to continue when the
+cluster has an unbacked key or an existing key differs from the encrypted
+backup. Run `make sealed-secrets-key-backup` again whenever this guard detects
+a newly renewed controller key.
 
 ### Flux
 

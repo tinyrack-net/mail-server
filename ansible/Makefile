@@ -1,4 +1,4 @@
-.PHONY: ping syntax lint preflight check apply verify vault-edit
+.PHONY: ping syntax lint preflight check apply verify vault-edit sealed-secrets-key-backup
 
 ANSIBLE ?= ansible
 ANSIBLE_PLAYBOOK ?= ansible-playbook
@@ -39,3 +39,6 @@ verify:
 
 vault-edit:
 	$(ANSIBLE_VAULT) edit $(VAULT_FILE)
+
+sealed-secrets-key-backup:
+	./scripts/backup-sealed-secrets-keys

@@ -5,6 +5,7 @@ ignore: |
   .ansible/
   collections/
   inventories/production/group_vars/all/vault.yml
+  inventories/production/group_vars/all/sealed-secrets-keys.vault.yml
   roles/restore_sealed_secrets_key/templates/
   roles/setup_floating_ip/templates/
   roles/setup_k3s_server/templates/

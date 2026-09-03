@@ -16,21 +16,19 @@
   changed_when: false
   check_mode: false
 
-- name: Restore the missing Sealed Secrets recovery key
+- name: Restore missing Sealed Secrets recovery keys
   ansible.builtin.command:
     argv:
       - /usr/local/bin/k3s
       - kubectl
       - apply
       - --filename=-
-  args:
     stdin: "{{ lookup('ansible.builtin.template', 'sealed-secrets-key.yaml.j2') }}"
     stdin_add_newline: false
+  loop: "{{ restore_sealed_secrets_key_resources }}"
   when:
     - not ansible_check_mode
-    - >-
-      not restore_sealed_secrets_key_k3s_executable.stat.exists
-      or restore_sealed_secrets_key_existing_result.rc != 0
+    - item.metadata.name not in restore_sealed_secrets_key_existing_by_name
   register: restore_sealed_secrets_key_apply
   changed_when: >-
     restore_sealed_secrets_key_apply.stdout_lines
@@ -39,12 +37,12 @@
     | length > 0
   no_log: true
 
-- name: Report a missing recovery key in check mode
+- name: Report missing recovery keys in check mode
   ansible.builtin.debug:
-    msg: The Sealed Secrets recovery key would be created.
+    msg: A backed-up Sealed Secrets recovery key would be restored.
+  loop: "{{ restore_sealed_secrets_key_resources }}"
   when:
     - ansible_check_mode
-    - >-
-      not restore_sealed_secrets_key_k3s_executable.stat.exists
-      or restore_sealed_secrets_key_existing_result.rc != 0
+    - item.metadata.name not in restore_sealed_secrets_key_existing_by_name
   changed_when: true
+  no_log: true
