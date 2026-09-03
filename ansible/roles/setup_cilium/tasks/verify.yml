@@ -78,6 +78,7 @@
       - (setup_cilium_installed_values.stdout | from_json).kubeProxyReplacement | bool
       - (setup_cilium_installed_values.stdout | from_json).bpf.masquerade | bool
       - (setup_cilium_installed_values.stdout | from_json).egressGateway.enabled | bool
+      - (setup_cilium_installed_values.stdout | from_json).hostFirewall.enabled | bool
       - (setup_cilium_installed_values.stdout | from_json).cni.exclusive | bool
       - (setup_cilium_installed_values.stdout | from_json).devices == setup_cilium_device
     fail_msg: Cilium, kube-proxy replacement, or mail egress settings are not healthy.

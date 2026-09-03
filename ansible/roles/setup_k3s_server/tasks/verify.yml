@@ -63,7 +63,11 @@
 
 - name: Query the ServiceLB daemon set
   ansible.builtin.command:
-    cmd: /usr/local/bin/k3s kubectl get daemonset --namespace kube-system --selector=svccontroller.k3s.cattle.io/svcname
+    cmd: >-
+      /usr/local/bin/k3s kubectl get daemonset
+      --namespace kube-system
+      --selector=svccontroller.k3s.cattle.io/svcname
+      --output=name
   register: setup_k3s_server_servicelb
   changed_when: false
 
@@ -94,7 +98,16 @@
       - setup_k3s_server_verified_config["node-ip"] == setup_k3s_server_node_ip
       - "' Ready ' in (' ' ~ setup_k3s_server_node.stdout ~ ' ')"
       - setup_k3s_server_traefik.rc == 0
-      - setup_k3s_server_servicelb.stdout_lines | length > 1
+      - >-
+        (
+          'servicelb' in setup_k3s_server_disabled_components
+          and setup_k3s_server_servicelb.stdout_lines | length == 0
+        )
+        or
+        (
+          'servicelb' not in setup_k3s_server_disabled_components
+          and setup_k3s_server_servicelb.stdout_lines | length > 0
+        )
     fail_msg: The K3s server does not match the managed configuration.
 
 - name: Verify each K3s TLS SAN

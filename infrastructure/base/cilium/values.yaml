@@ -20,6 +20,8 @@ bpf:
 egressGateway:
   enabled: true
 devices: eth0
+hostFirewall:
+  enabled: true
 cni:
   exclusive: true
   uninstall: false

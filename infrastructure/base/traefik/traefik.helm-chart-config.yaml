@@ -7,5 +7,6 @@ spec:
   valuesContent: |-
     service:
       spec:
+        allocateLoadBalancerNodePorts: false
         externalIPs:
           - 46.225.250.229

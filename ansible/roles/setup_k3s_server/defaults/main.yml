@@ -6,7 +6,8 @@ setup_k3s_server_node_ip: 46.224.117.106
 setup_k3s_server_tls_sans:
   - 100.127.220.52
   - mail-server.time-inconnu.ts.net
-setup_k3s_server_disabled_components: []
+setup_k3s_server_disabled_components:
+  - servicelb
 setup_k3s_server_flannel_backend: none
 setup_k3s_server_disable_network_policy: true
 setup_k3s_server_disable_kube_proxy: true
