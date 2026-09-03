@@ -53,15 +53,12 @@ spec:
               value: https://mail.winetree94.com
             - name: OAUTH_SCOPES
               value: "openid offline_access urn:ietf:params:oauth:scope:mail urn:ietf:params:oauth:scope:contacts urn:ietf:params:oauth:scope:calendars"
+            - name: STALWART_ADMIN_ACCESS
+              value: auto
             - name: SESSION_SECRET_FILE
               value: /run/secrets/session-secret
             - name: SETTINGS_SYNC_ENABLED
               value: "true"
-            - name: ADMIN_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: bulwark-secrets
-                  key: ADMIN_PASSWORD
             - name: ADMIN_CONFIG_DIR
               value: /app/data/admin
             - name: ADMIN_STATE_DIR
