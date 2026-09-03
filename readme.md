@@ -27,6 +27,7 @@ It runs Flux on K3s and uses the manifests under `apps` and `infrastructure` to 
 ## Services
 
 - [Stalwart Mail](https://stalw.art/): mail server for `mail.winetree94.com`.
+- [Bulwark Webmail](https://bulwarkmail.org/): JMAP webmail client for `webmail.winetree94.com`.
 - [Traefik](https://traefik.io/): HTTP ingress for the Stalwart web/admin surface.
 - [CloudNativePG](https://cloudnative-pg.io/): PostgreSQL operator for application data.
 - [Longhorn](https://longhorn.io/): persistent volume management and volume backups.
