@@ -1,112 +1,61 @@
 ---
-- name: Require the encrypted Sealed Secrets recovery key backup
+- name: Require the Sealed Secrets TLS material
   ansible.builtin.assert:
     that:
-      - restore_sealed_secrets_key_resources is sequence
-      - restore_sealed_secrets_key_resources is not string
-      - restore_sealed_secrets_key_resources | length > 0
-    fail_msg: Run `make sealed-secrets-key-backup` to create the encrypted recovery key backup.
+      - restore_sealed_secrets_key_tls_key is defined
+      - restore_sealed_secrets_key_tls_key != "CHANGE_ME"
+      - "'BEGIN' in restore_sealed_secrets_key_tls_key"
+      - "'PRIVATE KEY' in restore_sealed_secrets_key_tls_key"
+    fail_msg: Run `make vault-edit` and add the Sealed Secrets TLS private key.
   no_log: true
 
-- name: Validate each backed-up Sealed Secrets key resource
-  ansible.builtin.assert:
-    that:
-      - item.apiVersion == "v1"
-      - item.kind == "Secret"
-      - item.metadata.name | length > 0
-      - item.metadata.namespace == restore_sealed_secrets_key_namespace
-      - item.metadata.labels["sealedsecrets.bitnami.com/sealed-secrets-key"] == "active"
-      - item.type == "kubernetes.io/tls"
-      - item.data["tls.crt"] | length > 0
-      - item.data["tls.key"] | length > 0
-    fail_msg: The encrypted Sealed Secrets recovery key backup is malformed.
-  loop: "{{ restore_sealed_secrets_key_resources }}"
-  no_log: true
-
-- name: Read public keys from backed-up certificates
-  ansible.builtin.command:
-    argv: [openssl, x509, -pubkey, -noout]
-    stdin: "{{ item.data['tls.crt'] | b64decode }}"
-  loop: "{{ restore_sealed_secrets_key_resources }}"
-  delegate_to: localhost
-  become: false
-  register: restore_sealed_secrets_key_backed_certificate_public_keys
-  changed_when: false
-  check_mode: false
-  no_log: true
-
-- name: Read public keys from backed-up private keys
-  ansible.builtin.command:
-    argv: [openssl, pkey, -pubout]
-    stdin: "{{ item.data['tls.key'] | b64decode }}"
-  loop: "{{ restore_sealed_secrets_key_resources }}"
-  delegate_to: localhost
-  become: false
-  register: restore_sealed_secrets_key_backed_private_public_keys
-  changed_when: false
-  check_mode: false
-  no_log: true
-
-- name: Verify every backed-up certificate and private key pair
-  ansible.builtin.assert:
-    that:
-      - >-
-        restore_sealed_secrets_key_backed_certificate_public_keys.results[item].stdout
-        == restore_sealed_secrets_key_backed_private_public_keys.results[item].stdout
-    fail_msg: A backed-up Sealed Secrets certificate and private key do not match.
-  loop: "{{ range(0, restore_sealed_secrets_key_resources | length) | list }}"
-  no_log: true
-
-- name: Inspect the committed current Sealed Secrets certificate
+- name: Inspect the committed Sealed Secrets certificate
   ansible.builtin.stat:
-    path: "{{ restore_sealed_secrets_key_public_cert_path }}"
+    path: "{{ restore_sealed_secrets_key_tls_crt_path }}"
   delegate_to: localhost
   become: false
   run_once: true
-  register: restore_sealed_secrets_key_public_certificate_file
+  register: restore_sealed_secrets_key_certificate_file
 
-- name: Require the committed current Sealed Secrets certificate
+- name: Require the committed Sealed Secrets certificate
   ansible.builtin.assert:
     that:
-      - restore_sealed_secrets_key_public_certificate_file.stat.exists
-      - restore_sealed_secrets_key_public_certificate_file.stat.isreg
+      - restore_sealed_secrets_key_certificate_file.stat.exists
+      - restore_sealed_secrets_key_certificate_file.stat.isreg
     fail_msg: The committed tinyrack-production-key.crt file is missing.
   run_once: true
 
-- name: Read the public key from the committed current certificate
+- name: Read the public key from the Sealed Secrets certificate
   ansible.builtin.command:
     argv: [openssl, x509, -pubkey, -noout]
     stdin: >-
-      {{ lookup('ansible.builtin.file', restore_sealed_secrets_key_public_cert_path, rstrip=false) }}
+      {{ lookup('ansible.builtin.file', restore_sealed_secrets_key_tls_crt_path, rstrip=false) }}
   delegate_to: localhost
   become: false
   run_once: true
-  register: restore_sealed_secrets_key_current_certificate_public_key
+  register: restore_sealed_secrets_key_certificate_public_key
   changed_when: false
   check_mode: false
   no_log: true
 
-- name: Verify the current sealing certificate has a backed-up private key
-  ansible.builtin.assert:
-    that:
-      - >-
-        restore_sealed_secrets_key_current_certificate_public_key.stdout
-        in (
-          restore_sealed_secrets_key_backed_certificate_public_keys.results
-          | map(attribute='stdout')
-          | list
-        )
-    fail_msg: Run `make sealed-secrets-key-backup`; the current sealing certificate is not recoverable.
+- name: Read the public key from the Sealed Secrets private key
+  ansible.builtin.command:
+    argv: [openssl, pkey, -pubout]
+    stdin: "{{ restore_sealed_secrets_key_tls_key }}"
+  delegate_to: localhost
+  become: false
+  run_once: true
+  register: restore_sealed_secrets_key_private_public_key
+  changed_when: false
+  check_mode: false
   no_log: true
 
-- name: Index the backed-up Sealed Secrets keys by name
-  ansible.builtin.set_fact:
-    restore_sealed_secrets_key_backed_by_name: >-
-      {{
-        restore_sealed_secrets_key_backed_by_name | default({})
-        | combine({item.metadata.name: item})
-      }}
-  loop: "{{ restore_sealed_secrets_key_resources }}"
+- name: Verify the Sealed Secrets certificate and private key match
+  ansible.builtin.assert:
+    that:
+      - restore_sealed_secrets_key_certificate_public_key.stdout == restore_sealed_secrets_key_private_public_key.stdout
+    fail_msg: The Sealed Secrets certificate and private key do not match.
+  run_once: true
   no_log: true
 
 - name: Inspect the K3s executable before checking recovery keys
@@ -114,7 +63,33 @@
     path: /usr/local/bin/k3s
   register: restore_sealed_secrets_key_k3s_executable
 
-- name: Read all existing Sealed Secrets recovery keys
+- name: Read the configured Sealed Secrets recovery key
+  ansible.builtin.command:
+    argv:
+      - /usr/local/bin/k3s
+      - kubectl
+      - get
+      - secret
+      - "{{ restore_sealed_secrets_key_secret_name }}"
+      - --namespace
+      - "{{ restore_sealed_secrets_key_namespace }}"
+      - --output=json
+  when: restore_sealed_secrets_key_k3s_executable.stat.exists
+  register: restore_sealed_secrets_key_existing_result
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  no_log: true
+
+- name: Decode the configured Sealed Secrets recovery key
+  ansible.builtin.set_fact:
+    restore_sealed_secrets_key_existing_resource: "{{ restore_sealed_secrets_key_existing_result.stdout | from_json }}"
+  when:
+    - restore_sealed_secrets_key_k3s_executable.stat.exists
+    - restore_sealed_secrets_key_existing_result.rc == 0
+  no_log: true
+
+- name: Read all active Sealed Secrets recovery key names
   ansible.builtin.command:
     argv:
       - /usr/local/bin/k3s
@@ -126,81 +101,84 @@
       - --selector=sealedsecrets.bitnami.com/sealed-secrets-key=active
       - --output=json
   when: restore_sealed_secrets_key_k3s_executable.stat.exists
-  register: restore_sealed_secrets_key_existing_result
+  register: restore_sealed_secrets_key_active_result
   changed_when: false
   failed_when: false
   check_mode: false
   no_log: true
 
-- name: Accept only a successful key query or an absent recovery namespace
+- name: Accept only a successful active key query or an absent recovery namespace
   ansible.builtin.assert:
     that:
       - >-
         not restore_sealed_secrets_key_k3s_executable.stat.exists
-        or restore_sealed_secrets_key_existing_result.rc == 0
+        or restore_sealed_secrets_key_active_result.rc == 0
         or (
-          restore_sealed_secrets_key_existing_result.rc == 1
+          restore_sealed_secrets_key_active_result.rc == 1
           and 'namespaces "' ~ restore_sealed_secrets_key_namespace ~ '" not found'
-              in restore_sealed_secrets_key_existing_result.stderr
+              in restore_sealed_secrets_key_active_result.stderr
         )
-    fail_msg: Unable to inspect the existing Sealed Secrets recovery keys.
+    fail_msg: Unable to inspect the active Sealed Secrets recovery keys.
   no_log: true
 
-- name: Decode the existing Sealed Secrets recovery keys
-  ansible.builtin.set_fact:
-    restore_sealed_secrets_key_existing_resources: >-
-      {{
-        (restore_sealed_secrets_key_existing_result.stdout | from_json)['items']
-        if (
-          restore_sealed_secrets_key_k3s_executable.stat.exists
-          and restore_sealed_secrets_key_existing_result.rc == 0
-        )
-        else []
-      }}
-  no_log: true
-
-- name: Index the existing Sealed Secrets keys by name
-  ansible.builtin.set_fact:
-    restore_sealed_secrets_key_existing_by_name: >-
-      {{
-        restore_sealed_secrets_key_existing_by_name | default({})
-        | combine({item.metadata.name: item})
-      }}
-  loop: "{{ restore_sealed_secrets_key_existing_resources }}"
-  no_log: true
-
-- name: Initialize the existing Sealed Secrets key index on a new cluster
-  ansible.builtin.set_fact:
-    restore_sealed_secrets_key_existing_by_name: {}
-  when: restore_sealed_secrets_key_existing_resources | length == 0
-  no_log: true
-
-- name: Refuse unbacked live Sealed Secrets recovery keys
+- name: Refuse additional active Sealed Secrets recovery keys
   ansible.builtin.assert:
     that:
       - >-
-        restore_sealed_secrets_key_existing_by_name
-        | ansible.builtin.dict2items
-        | map(attribute='key')
-        | difference(
-            restore_sealed_secrets_key_backed_by_name
-            | ansible.builtin.dict2items
-            | map(attribute='key')
-          )
-        | length == 0
-    fail_msg: Run `make sealed-secrets-key-backup`; the cluster contains an unbacked recovery key.
+        (
+          (restore_sealed_secrets_key_active_result.stdout | from_json)['items']
+          | map(attribute='metadata.name')
+          | difference([restore_sealed_secrets_key_secret_name])
+          | length
+        ) == 0
+    fail_msg: Disable key renewal and remove additional active Sealed Secrets recovery keys.
+  when:
+    - restore_sealed_secrets_key_k3s_executable.stat.exists
+    - restore_sealed_secrets_key_active_result.rc == 0
+  no_log: true
+
+- name: Read the public key from the existing Sealed Secrets certificate
+  ansible.builtin.command:
+    argv: [openssl, x509, -pubkey, -noout]
+    stdin: "{{ restore_sealed_secrets_key_existing_resource.data['tls.crt'] | b64decode }}"
+  delegate_to: localhost
+  become: false
+  run_once: true
+  when:
+    - restore_sealed_secrets_key_k3s_executable.stat.exists
+    - restore_sealed_secrets_key_existing_result.rc == 0
+  register: restore_sealed_secrets_key_existing_certificate_public_key
+  changed_when: false
+  check_mode: false
+  no_log: true
+
+- name: Read the public key from the existing Sealed Secrets private key
+  ansible.builtin.command:
+    argv: [openssl, pkey, -pubout]
+    stdin: "{{ restore_sealed_secrets_key_existing_resource.data['tls.key'] | b64decode }}"
+  delegate_to: localhost
+  become: false
+  run_once: true
+  when:
+    - restore_sealed_secrets_key_k3s_executable.stat.exists
+    - restore_sealed_secrets_key_existing_result.rc == 0
+  register: restore_sealed_secrets_key_existing_private_public_key
+  changed_when: false
+  check_mode: false
   no_log: true
 
 - name: Refuse to overwrite a different Sealed Secrets recovery key
   ansible.builtin.assert:
     that:
+      - restore_sealed_secrets_key_existing_resource.type == "kubernetes.io/tls"
       - >-
-        item.metadata.name not in restore_sealed_secrets_key_existing_by_name
-        or (
-          restore_sealed_secrets_key_existing_by_name[item.metadata.name].type == item.type
-          and restore_sealed_secrets_key_existing_by_name[item.metadata.name].data['tls.crt'] == item.data['tls.crt']
-          and restore_sealed_secrets_key_existing_by_name[item.metadata.name].data['tls.key'] == item.data['tls.key']
-        )
-    fail_msg: An existing Sealed Secrets recovery key differs from the encrypted backup.
-  loop: "{{ restore_sealed_secrets_key_resources }}"
+        restore_sealed_secrets_key_existing_certificate_public_key.stdout
+        == restore_sealed_secrets_key_certificate_public_key.stdout
+      - >-
+        restore_sealed_secrets_key_existing_private_public_key.stdout
+        == restore_sealed_secrets_key_private_public_key.stdout
+    fail_msg: The existing Sealed Secrets recovery key differs from the Vault values; it was not overwritten.
+  when:
+    - restore_sealed_secrets_key_k3s_executable.stat.exists
+    - restore_sealed_secrets_key_existing_result.rc == 0
   no_log: true

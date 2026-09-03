@@ -60,7 +60,7 @@ repository.
 
 1. Configure the Floating IP and install K3s with the same cluster and service CIDRs.
 2. Bootstrap Cilium from the canonical Helm values.
-3. Restore the Sealed Secrets private key before applying encrypted manifests.
+3. Restore the single `tinyrack-production-key` Sealed Secrets private key before applying encrypted manifests.
 4. Bootstrap Flux from `clusters/production`; Flux adopts the existing Cilium release.
 5. Wait for `infrastructure` to become ready, then verify `apps` reconciliation.
 6. Restore required data from Longhorn backups or application-specific backups.
@@ -69,7 +69,8 @@ repository.
 DR guidelines:
 
 - Git is the source of truth for declarative infrastructure.
-- Keep the Sealed Secrets private key backed up separately and securely.
+- Keep the Ansible Vault password separately and securely; Git contains only the encrypted private key backup.
+- The controller must load only `tinyrack-production-key` before Flux applies encrypted manifests.
 - Data volumes are not restored from Git; verify backup policy per service.
 - Database-like volumes should use their own backup/restore flow rather than generic Longhorn volume backups when applicable.
 - After recovery, verify Flux, Sealed Secrets, certificates, storage, database, ingress, and mail protocols in that order.
@@ -92,15 +93,13 @@ route, DHCP, and IPv6 configuration remain managed by Hetzner cloud-init.
 
 ### K3s and Sealed Secrets key
 
-Store the become password in the Ansible Vault. Back up every active Sealed
-Secrets controller key after initial installation and after each automatic key
-renewal. The backup command writes only encrypted key material to Git and
-refreshes `tinyrack-production-key.crt` with the current sealing certificate:
+Store the become password and the private key matching
+`tinyrack-production-key.crt` in the Ansible Vault. Automatic sealing-key
+renewal is disabled, so Ansible restores and verifies exactly this one key:
 
 ```bash
 cd ansible
 make vault-edit
-make sealed-secrets-key-backup
 make preflight
 make check
 make apply
@@ -113,10 +112,9 @@ The first apply configures the Floating IP, normalizes the host packages and
 K3s configuration, bootstraps Cilium when Flux is absent, and may restart K3s
 once. If the Flux Cilium HelmRelease already exists, Ansible only waits for it
 to become Ready. The second apply must report no changes.
-Ansible restores every backed-up recovery key and refuses to continue when the
-cluster has an unbacked key or an existing key differs from the encrypted
-backup. Run `make sealed-secrets-key-backup` again whenever this guard detects
-a newly renewed controller key.
+Ansible refuses to overwrite a mismatched recovery key and fails when any
+additional active sealing key exists. This detects drift without deleting key
+material automatically.
 
 ### Flux
 
@@ -141,3 +139,10 @@ kubectl create secret generic some-secret \
   kubeseal --cert ./tinyrack-production-key.crt \
   > ./some.secret.yaml
 ```
+
+Always seal with the committed certificate instead of fetching a certificate
+from the live controller. Rotate the sealing key annually, or immediately after
+suspected exposure: create and back up the replacement key first, re-seal every
+manifest, verify the GitOps rollout, and only then retire the previous key. If
+the sealing key may have leaked, rotate the underlying passwords, tokens, and
+session secrets as well.

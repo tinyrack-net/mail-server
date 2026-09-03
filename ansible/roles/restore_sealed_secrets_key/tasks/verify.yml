@@ -2,18 +2,26 @@
 - name: Run Sealed Secrets recovery key preflight checks before verification
   ansible.builtin.import_tasks: preflight.yml
 
-- name: Verify every backed-up Sealed Secrets recovery key exists
+- name: Require the single Sealed Secrets recovery key to exist
   ansible.builtin.assert:
     that:
+      - restore_sealed_secrets_key_k3s_executable.stat.exists
+      - restore_sealed_secrets_key_existing_result.rc == 0
+    fail_msg: The Sealed Secrets recovery key is missing from the cluster.
+  no_log: true
+
+- name: Verify the single Sealed Secrets recovery key
+  ansible.builtin.assert:
+    that:
+      - restore_sealed_secrets_key_existing_resource.type == "kubernetes.io/tls"
       - >-
-        restore_sealed_secrets_key_backed_by_name
-        | ansible.builtin.dict2items
-        | map(attribute='key')
-        | difference(
-            restore_sealed_secrets_key_existing_by_name
-            | ansible.builtin.dict2items
-            | map(attribute='key')
-          )
-        | length == 0
-    fail_msg: A backed-up Sealed Secrets recovery key is missing from the cluster.
+        restore_sealed_secrets_key_existing_resource.metadata.labels["sealedsecrets.bitnami.com/sealed-secrets-key"]
+        == "active"
+      - >-
+        restore_sealed_secrets_key_existing_certificate_public_key.stdout
+        == restore_sealed_secrets_key_certificate_public_key.stdout
+      - >-
+        restore_sealed_secrets_key_existing_private_public_key.stdout
+        == restore_sealed_secrets_key_private_public_key.stdout
+    fail_msg: The restored Sealed Secrets recovery key does not match the Vault values.
   no_log: true
