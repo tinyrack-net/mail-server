@@ -44,15 +44,9 @@ spec:
             - name: STALWART_FEATURES
               value: "true"
             - name: OAUTH_ENABLED
-              value: "true"
+              value: "false"
             - name: OAUTH_ONLY
-              value: "true"
-            - name: OAUTH_CLIENT_ID
-              value: bulwark-webmail
-            - name: OAUTH_ISSUER_URL
-              value: https://mail.winetree94.com
-            - name: OAUTH_SCOPES
-              value: "openid offline_access urn:ietf:params:oauth:scope:mail urn:ietf:params:oauth:scope:contacts urn:ietf:params:oauth:scope:calendars"
+              value: "false"
             - name: STALWART_ADMIN_ACCESS
               value: auto
             - name: SESSION_SECRET_FILE
