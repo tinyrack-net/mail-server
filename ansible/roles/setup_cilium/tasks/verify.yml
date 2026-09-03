@@ -9,7 +9,7 @@
       - --context
       - "{{ setup_cilium_kube_context }}"
       - --namespace
-      - kube-system
+      - "{{ setup_cilium_namespace }}"
       - rollout
       - status
       - daemonset/cilium
@@ -25,7 +25,7 @@
       - --context
       - "{{ setup_cilium_kube_context }}"
       - --namespace
-      - kube-system
+      - "{{ setup_cilium_namespace }}"
       - rollout
       - status
       - deployment/cilium-operator
@@ -41,7 +41,7 @@
       - --context
       - "{{ setup_cilium_kube_context }}"
       - --namespace
-      - kube-system
+      - "{{ setup_cilium_namespace }}"
       - exec
       - daemonset/cilium
       - --
@@ -52,12 +52,6 @@
   become: false
   register: setup_cilium_status
   changed_when: false
-
-- name: Require a healthy Cilium datapath
-  ansible.builtin.assert:
-    that:
-      - setup_cilium_status.stdout | trim == 'OK'
-    fail_msg: Cilium or kube-proxy replacement is not healthy.
 
 - name: Read the installed Cilium values
   ansible.builtin.command:
@@ -77,10 +71,13 @@
   register: setup_cilium_installed_values
   changed_when: false
 
-- name: Require kube-proxy replacement and Egress Gateway
+- name: Verify the Cilium datapath and installed values
   ansible.builtin.assert:
     that:
+      - setup_cilium_status.stdout | trim == "OK"
       - (setup_cilium_installed_values.stdout | from_json).kubeProxyReplacement | bool
       - (setup_cilium_installed_values.stdout | from_json).bpf.masquerade | bool
       - (setup_cilium_installed_values.stdout | from_json).egressGateway.enabled | bool
-    fail_msg: Required Cilium kube-proxy replacement or egress settings are disabled.
+      - (setup_cilium_installed_values.stdout | from_json).cni.exclusive | bool
+      - (setup_cilium_installed_values.stdout | from_json).devices == setup_cilium_device
+    fail_msg: Cilium, kube-proxy replacement, or mail egress settings are not healthy.

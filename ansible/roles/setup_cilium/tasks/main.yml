@@ -2,33 +2,25 @@
 - name: Run Cilium preflight checks
   ansible.builtin.import_tasks: preflight.yml
 
-- name: Render pinned Cilium Helm values locally
-  ansible.builtin.template:
-    src: values.yaml.j2
-    dest: "{{ setup_cilium_values_path }}"
-    mode: "0600"
-  delegate_to: localhost
-  become: false
-  register: setup_cilium_values
-
-- name: Read the installed Cilium release
+- name: Inspect the Flux Cilium HelmRelease
   ansible.builtin.command:
     argv:
-      - helm
-      - --kube-context
+      - kubectl
+      - --context
       - "{{ setup_cilium_kube_context }}"
-      - status
-      - "{{ setup_cilium_release_name }}"
       - --namespace
       - "{{ setup_cilium_namespace }}"
+      - get
+      - helmrelease
+      - "{{ setup_cilium_flux_helm_release_name }}"
   delegate_to: localhost
   become: false
-  register: setup_cilium_release
+  register: setup_cilium_flux_release
   changed_when: false
   failed_when: false
   check_mode: false
 
-- name: Read the installed Cilium chart version
+- name: Read the bootstrapped Cilium chart version before Flux
   ansible.builtin.command:
     argv:
       - helm
@@ -44,20 +36,50 @@
   delegate_to: localhost
   become: false
   register: setup_cilium_releases
+  when: setup_cilium_flux_release.rc != 0
   changed_when: false
   check_mode: false
 
-- name: Detect whether Cilium needs an upgrade
-  ansible.builtin.set_fact:
-    setup_cilium_needs_upgrade: >-
-      {{
-        setup_cilium_release.rc != 0
-        or (setup_cilium_releases.stdout | from_json | length) != 1
-        or (setup_cilium_releases.stdout | from_json | first).chart != ('cilium-' ~ setup_cilium_version)
-        or setup_cilium_values.changed
-      }}
+- name: Read the bootstrapped Cilium values before Flux
+  ansible.builtin.command:
+    argv:
+      - helm
+      - --kube-context
+      - "{{ setup_cilium_kube_context }}"
+      - get
+      - values
+      - "{{ setup_cilium_release_name }}"
+      - --namespace
+      - "{{ setup_cilium_namespace }}"
+      - --output
+      - json
+  delegate_to: localhost
+  become: false
+  register: setup_cilium_bootstrap_values
+  when: setup_cilium_flux_release.rc != 0
+  changed_when: false
+  failed_when: false
+  check_mode: false
 
-- name: Install or upgrade the pinned Cilium release
+- name: Detect whether the Cilium bootstrap release needs reconciliation
+  ansible.builtin.set_fact:
+    setup_cilium_bootstrap_required: >-
+      {{
+        (setup_cilium_releases.stdout | from_json | length) != 1
+        or (
+          (setup_cilium_releases.stdout | from_json | first | default({})).chart
+          | default("")
+        ) != ("cilium-" ~ setup_cilium_version)
+        or setup_cilium_bootstrap_values.rc != 0
+        or (
+          setup_cilium_bootstrap_values.rc == 0
+          and (setup_cilium_bootstrap_values.stdout | from_json)
+            != (lookup("ansible.builtin.file", setup_cilium_values_path) | from_yaml)
+        )
+      }}
+  when: setup_cilium_flux_release.rc != 0
+
+- name: Bootstrap the pinned Cilium Helm release before Flux
   ansible.builtin.command:
     argv:
       - helm
@@ -79,14 +101,35 @@
   delegate_to: localhost
   become: false
   when:
-    - setup_cilium_needs_upgrade
+    - setup_cilium_flux_release.rc != 0
+    - setup_cilium_bootstrap_required
     - not ansible_check_mode
   changed_when: true
 
-- name: Report a pending Cilium installation in check mode
+- name: Report a pending Cilium bootstrap in check mode
   ansible.builtin.debug:
-    msg: Cilium would be installed or upgraded.
+    msg: Cilium would be bootstrapped because no Flux HelmRelease exists.
   when:
-    - setup_cilium_needs_upgrade
+    - setup_cilium_flux_release.rc != 0
+    - setup_cilium_bootstrap_required
     - ansible_check_mode
   changed_when: true
+
+- name: Wait for Flux to manage Cilium when its HelmRelease exists
+  ansible.builtin.command:
+    argv:
+      - kubectl
+      - --context
+      - "{{ setup_cilium_kube_context }}"
+      - --namespace
+      - "{{ setup_cilium_namespace }}"
+      - wait
+      - helmrelease
+      - "{{ setup_cilium_flux_helm_release_name }}"
+      - --for=condition=Ready
+      - "--timeout={{ setup_cilium_ready_timeout }}"
+  delegate_to: localhost
+  become: false
+  when: setup_cilium_flux_release.rc == 0
+  changed_when: false
+  check_mode: false

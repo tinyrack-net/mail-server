@@ -42,6 +42,10 @@ Exposed mail protocols are managed through the `stalwart-mail-service` LoadBalan
 ## Cilium and mail egress
 
 - K3s uses Cilium `1.20.1` with Pod CIDR `10.57.0.0/16`.
+- Ansible bootstraps Cilium before Flux is available; afterward, Flux owns the
+  release lifecycle through the `cilium` HelmRelease.
+- Both paths consume `infrastructure/base/cilium/values.yaml` as the single
+  source of Cilium values.
 - Stalwart external IPv4 traffic leaves through Floating IP `46.225.250.229`.
 - The A record for `mail.winetree94.com` and the Floating IP PTR must match.
 - Use `make preflight`, `make check`, `make apply`, and `make verify` for normal management.
@@ -49,14 +53,17 @@ Exposed mail protocols are managed through the `stalwart-mail-service` LoadBalan
 
 ## Disaster Recovery
 
-The recovery goal is to install K3s on a new node, restore the Sealed Secrets key, and let Flux recreate the cluster state from this repository.
+The recovery goal is to install K3s and bootstrap Cilium on a new node, restore
+the Sealed Secrets key, and let Flux recreate the cluster state from this
+repository.
 
-1. Install K3s with the same cluster and service CIDRs.
-2. Restore the Sealed Secrets private key before applying encrypted manifests.
-3. Bootstrap Flux from `clusters/production`.
-4. Wait for `infrastructure` to become ready, then verify `apps` reconciliation.
-5. Restore required data from Longhorn backups or application-specific backups.
-6. Verify mail delivery, TLS, DNS records, and Stalwart web/admin access.
+1. Configure the Floating IP and install K3s with the same cluster and service CIDRs.
+2. Bootstrap Cilium from the canonical Helm values.
+3. Restore the Sealed Secrets private key before applying encrypted manifests.
+4. Bootstrap Flux from `clusters/production`; Flux adopts the existing Cilium release.
+5. Wait for `infrastructure` to become ready, then verify `apps` reconciliation.
+6. Restore required data from Longhorn backups or application-specific backups.
+7. Verify mail delivery, TLS, DNS records, and Stalwart web/admin access.
 
 DR guidelines:
 
@@ -99,8 +106,10 @@ make verify
 cd ..
 ```
 
-The first apply normalizes the host packages, inotify limits, and K3s
-configuration and may restart K3s once. The second apply must report no changes.
+The first apply configures the Floating IP, normalizes the host packages and
+K3s configuration, bootstraps Cilium when Flux is absent, and may restart K3s
+once. If the Flux Cilium HelmRelease already exists, Ansible only waits for it
+to become Ready. The second apply must report no changes.
 Ansible refuses to overwrite an existing Sealed Secrets recovery key when it
 does not match the Vault values.
 

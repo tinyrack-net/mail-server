@@ -22,9 +22,9 @@
   roles:
     - role: setup_floating_ip
       become: true
-    - role: setup_cilium
-      become: true
     - role: setup_k3s_server
+      become: true
+    - role: setup_cilium
       become: true
     - role: restore_sealed_secrets_key
       become: true

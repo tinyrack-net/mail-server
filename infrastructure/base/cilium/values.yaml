@@ -1,8 +1,8 @@
 cluster:
-  name: {{ setup_cilium_cluster_name }}
+  name: mail-server
   id: 0
-k8sServiceHost: {{ setup_cilium_k8s_service_host }}
-k8sServicePort: {{ setup_cilium_k8s_service_port }}
+k8sServiceHost: 127.0.0.1
+k8sServicePort: 6443
 kubeProxyReplacement: true
 identityAllocationMode: crd
 operator:
@@ -11,15 +11,15 @@ ipam:
   mode: cluster-pool
   operator:
     clusterPoolIPv4PodCIDRList:
-      - {{ setup_cilium_cluster_cidr }}
-    clusterPoolIPv4MaskSize: {{ setup_cilium_cluster_pool_mask_size }}
+      - 10.57.0.0/16
+    clusterPoolIPv4MaskSize: 24
 routingMode: tunnel
 tunnelProtocol: vxlan
 bpf:
   masquerade: true
 egressGateway:
   enabled: true
-devices: {{ setup_cilium_device }}
+devices: eth0
 cni:
   exclusive: true
   uninstall: false

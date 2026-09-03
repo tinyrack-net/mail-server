@@ -1,11 +1,11 @@
 ---
-- name: Validate Cilium inputs
+- name: Validate Cilium inputs and host support
   ansible.builtin.assert:
     that:
-      - setup_cilium_version == '1.20.1'
-      - ansible_facts.kernel is version('5.10', '>=')
-      - ansible_facts.architecture == 'x86_64'
-    fail_msg: Cilium requires the pinned version, matching K3s CIDR/interface, and a supported kernel.
+      - setup_cilium_version == "1.20.1"
+      - ansible_facts.kernel is version("5.10", ">=")
+      - ansible_facts.architecture == "x86_64"
+    fail_msg: Cilium requires the pinned version, Linux 5.10 or newer, and amd64.
 
 - name: Verify the Cilium network device exists
   ansible.builtin.command:
@@ -26,6 +26,20 @@
       - setup_cilium_floating_ip in setup_cilium_device_addresses.stdout
     fail_msg: The Floating IP must be configured before Cilium is installed.
 
+- name: Inspect the canonical Cilium values file
+  ansible.builtin.stat:
+    path: "{{ setup_cilium_values_path }}"
+  delegate_to: localhost
+  become: false
+  register: setup_cilium_values_file
+
+- name: Require the canonical Cilium values file
+  ansible.builtin.assert:
+    that:
+      - setup_cilium_values_file.stat.exists
+      - setup_cilium_values_file.stat.isreg
+    fail_msg: "Missing canonical Cilium values file: {{ setup_cilium_values_path }}"
+
 - name: Check the local Helm client
   ansible.builtin.command:
     argv: [helm, version, --short]
@@ -37,7 +51,13 @@
 
 - name: Check the target Kubernetes context
   ansible.builtin.command:
-    argv: [kubectl, --context, "{{ setup_cilium_kube_context }}", get, node, mail-server]
+    argv:
+      - kubectl
+      - --context
+      - "{{ setup_cilium_kube_context }}"
+      - get
+      - node
+      - "{{ setup_cilium_node_name }}"
   delegate_to: localhost
   become: false
   changed_when: false
