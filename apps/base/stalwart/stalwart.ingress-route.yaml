@@ -7,7 +7,15 @@ spec:
   entryPoints:
     - web
   routes:
-    - match: Host(`mail.winetree94.com`)
+    - match: >-
+        Host(`mail.winetree94.com`) ||
+        Host(`autoconfig.winetree94.com`) ||
+        Host(`autodiscover.winetree94.com`) ||
+        Host(`mta-sts.winetree94.com`) ||
+        Host(`mail.tinyrack.net`) ||
+        Host(`autoconfig.tinyrack.net`) ||
+        Host(`autodiscover.tinyrack.net`) ||
+        Host(`mta-sts.tinyrack.net`)
       kind: Rule
       middlewares:
         - name: redirect-to-https
@@ -24,7 +32,15 @@ spec:
   entryPoints:
     - websecure
   routes:
-    - match: HostSNI(`mail.winetree94.com`)
+    - match: >-
+        HostSNI(`mail.winetree94.com`) ||
+        HostSNI(`autoconfig.winetree94.com`) ||
+        HostSNI(`autodiscover.winetree94.com`) ||
+        HostSNI(`mta-sts.winetree94.com`) ||
+        HostSNI(`mail.tinyrack.net`) ||
+        HostSNI(`autoconfig.tinyrack.net`) ||
+        HostSNI(`autodiscover.tinyrack.net`) ||
+        HostSNI(`mta-sts.tinyrack.net`)
       services:
         - name: stalwart-web-service
           port: https
