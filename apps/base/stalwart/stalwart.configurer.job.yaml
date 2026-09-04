@@ -1,0 +1,126 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: stalwart-configurer
+  namespace: stalwart-system
+  annotations:
+    kustomize.toolkit.fluxcd.io/force: enabled
+spec:
+  activeDeadlineSeconds: 600
+  backoffLimit: 10
+  template:
+    metadata:
+      labels:
+        app: stalwart-configurer
+    spec:
+      automountServiceAccountToken: false
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: validate-plan
+          image: ghcr.io/stalwartlabs/cli:1.0.12@sha256:fe199affac1d120a8c200ef39ae629765a2976270e0453575c1caf906ee15b52
+          args:
+            - apply
+            - --file
+            - /config/plan.ndjson
+            - --dry-run
+          env:
+            - name: STALWART_URL
+              value: https://mail.winetree94.com
+            - name: STALWART_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: stalwart-configurer
+                  key: api-token
+          volumeMounts:
+            - name: plan
+              mountPath: /config
+              readOnly: true
+            - name: cache
+              mountPath: /home/nonroot/.cache
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 200m
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+        - name: apply-plan
+          image: ghcr.io/stalwartlabs/cli:1.0.12@sha256:fe199affac1d120a8c200ef39ae629765a2976270e0453575c1caf906ee15b52
+          args:
+            - apply
+            - --file
+            - /config/plan.ndjson
+            - --json
+          env:
+            - name: STALWART_URL
+              value: https://mail.winetree94.com
+            - name: STALWART_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: stalwart-configurer
+                  key: api-token
+          volumeMounts:
+            - name: plan
+              mountPath: /config
+              readOnly: true
+            - name: cache
+              mountPath: /home/nonroot/.cache
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 200m
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+      containers:
+        - name: reload-settings
+          image: ghcr.io/stalwartlabs/cli:1.0.12@sha256:fe199affac1d120a8c200ef39ae629765a2976270e0453575c1caf906ee15b52
+          args:
+            - create
+            - Action/ReloadSettings
+          env:
+            - name: STALWART_URL
+              value: https://mail.winetree94.com
+            - name: STALWART_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: stalwart-configurer
+                  key: api-token
+          volumeMounts:
+            - name: cache
+              mountPath: /home/nonroot/.cache
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 200m
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+      volumes:
+        - name: plan
+          configMap:
+            name: stalwart-plan
+        - name: cache
+          emptyDir: {}

@@ -28,4 +28,3 @@
       become: true
     - role: restore_sealed_secrets_key
       become: true
-    - role: configure_stalwart

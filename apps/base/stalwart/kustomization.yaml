@@ -5,6 +5,7 @@ resources:
   - stalwart.database.superuser.secret.yaml
   - stalwart.database.user.secret.yaml
   - stalwart.cloudflare.secret.yaml
+  - stalwart.configurer.secret.yaml
   - stalwart.database.yaml
   - stalwart.backup-cleanup.yaml
   - stalwart.deployment.yaml
@@ -13,8 +14,13 @@ resources:
   - stalwart.web.service.yaml
   - stalwart.mail.service.yaml
   - stalwart.ingress-route.yaml
+  - stalwart.configurer.job.yaml
 configMapGenerator:
   - name: stalwart-config
     namespace: stalwart-system
     files:
       - config.json=stalwart.config.json
+  - name: stalwart-plan
+    namespace: stalwart-system
+    files:
+      - plan.ndjson=stalwart.plan.ndjson
