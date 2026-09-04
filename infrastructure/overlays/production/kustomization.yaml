@@ -12,5 +12,6 @@ resources:
   - longhorn.yaml
   - cert-manager.yaml
   - cloudnative-pg.yaml
+  - cnpg-network-policy-activation.yaml
   - kyverno.yaml
   - traefik.yaml
