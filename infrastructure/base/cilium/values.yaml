@@ -28,4 +28,10 @@ cni:
   uninstall: false
 policyEnforcementMode: default
 hubble:
-  enabled: false
+  enabled: true
+  relay:
+    enabled: true
+    service:
+      type: ClusterIP
+  ui:
+    enabled: false
