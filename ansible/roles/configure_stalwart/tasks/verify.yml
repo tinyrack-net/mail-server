@@ -58,8 +58,19 @@
         - - x:NetworkListener/get
           - accountId: "{{ configure_stalwart_registry_account_id }}"
             ids: "{{ configure_stalwart_verify_queries.json.methodResponses[2][1].ids }}"
-            properties: [id, name, useTls, tlsImplicit, tlsDisableProtocols]
+            properties:
+              - id
+              - name
+              - useTls
+              - tlsImplicit
+              - tlsDisableProtocols
+              - overrideProxyTrustedNetworks
           - listener-get
+        - - x:Http/get
+          - accountId: "{{ configure_stalwart_registry_account_id }}"
+            ids: [singleton]
+            properties: [id, usePermissiveCors, responseHeaders]
+          - http-get
     return_content: true
     status_code: 200
     validate_certs: true
@@ -97,3 +108,27 @@
        | list }}
   loop_control:
     label: "{{ item.name }}"
+
+- name: Verify the HTTPS listener accepts PROXY protocol only from the pod network
+  ansible.builtin.assert:
+    that:
+      - item.useTls | bool
+      - item.tlsImplicit | bool
+      - item.overrideProxyTrustedNetworks == configure_stalwart_https_proxy_trusted_networks
+    fail_msg: The Stalwart HTTPS listener does not match the TLS passthrough target state.
+  loop: >-
+    {{ configure_stalwart_verify_objects.json.methodResponses[2][1].list
+       | selectattr('name', 'equalto', configure_stalwart_https_listener_name)
+       | list }}
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Verify native Stalwart CORS response headers
+  ansible.builtin.assert:
+    that:
+      - configure_stalwart_verify_objects.json.methodResponses[3][1].list | length == 1
+      - not (configure_stalwart_verify_objects.json.methodResponses[3][1].list[0].usePermissiveCors | bool)
+      - >-
+        configure_stalwart_verify_objects.json.methodResponses[3][1].list[0].responseHeaders
+        == configure_stalwart_http_response_headers
+    fail_msg: Stalwart does not expose the restricted Bulwark CORS policy.

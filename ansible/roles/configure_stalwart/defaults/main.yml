@@ -8,6 +8,15 @@ configure_stalwart_acme_contact: mailto:admin@winetree94.com
 configure_stalwart_acme_renew_before: R23
 configure_stalwart_acme_max_retries: 10
 configure_stalwart_dns_server_description: Cloudflare DNS for ACME DNS-01
+configure_stalwart_https_listener_name: https
+configure_stalwart_https_proxy_trusted_networks:
+  10.57.0.0/24: true
+configure_stalwart_http_response_headers:
+  Access-Control-Allow-Origin: https://webmail.winetree94.com
+  Access-Control-Allow-Methods: GET, POST, OPTIONS
+  Access-Control-Allow-Headers: Authorization, Content-Type, Accept, X-Requested-With
+  Access-Control-Max-Age: "86400"
+  Vary: Origin
 configure_stalwart_domains:
   winetree94.com:
     id: c

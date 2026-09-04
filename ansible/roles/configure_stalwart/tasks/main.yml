@@ -97,6 +97,10 @@
       {{ (configure_stalwart_registry_objects.json.methodResponses[1][1].list
           | selectattr('directory', 'equalto', configure_stalwart_acme_directory)
           | map(attribute='id') | list | first) }}
+    configure_stalwart_https_listener_id: >-
+      {{ (configure_stalwart_registry_objects.json.methodResponses[3][1].list
+          | selectattr('name', 'equalto', configure_stalwart_https_listener_name)
+          | map(attribute='id') | list | first) }}
 
 - name: Validate stable Stalwart object identities
   ansible.builtin.assert:
@@ -111,6 +115,10 @@
         configure_stalwart_registry_objects.json.methodResponses[3][1].list
         | selectattr('name', 'in', configure_stalwart_listener_ids.keys() | list)
         | list | length == 8
+      - >-
+        configure_stalwart_registry_objects.json.methodResponses[3][1].list
+        | selectattr('name', 'equalto', configure_stalwart_https_listener_name)
+        | list | length == 1
     fail_msg: Refusing to reconcile because the Stalwart provider, domain, or listener inventory is unexpected.
 
 - name: Select the current winetree94.com certificate
@@ -206,7 +214,18 @@
               "{{ configure_stalwart_listener_ids.pop3 }}": {useTls: true, tlsImplicit: false}
               "{{ configure_stalwart_listener_ids.pop3s }}": {useTls: true, tlsImplicit: true}
               "{{ configure_stalwart_listener_ids.sieve }}": {useTls: true, tlsImplicit: false}
+              "{{ configure_stalwart_https_listener_id }}":
+                useTls: true
+                tlsImplicit: true
+                overrideProxyTrustedNetworks: "{{ configure_stalwart_https_proxy_trusted_networks }}"
           - listener-update
+        - - x:Http/set
+          - accountId: "{{ configure_stalwart_registry_account_id }}"
+            update:
+              singleton:
+                usePermissiveCors: false
+                responseHeaders: "{{ configure_stalwart_http_response_headers }}"
+          - http-update
         - - x:Imap/set
           - accountId: "{{ configure_stalwart_registry_account_id }}"
             update:
@@ -224,12 +243,6 @@
                       then: '[plain, login, oauthbearer, xoauth2]'
                   else: 'false'
           - smtp-auth-update
-        - - x:Action/set
-          - accountId: "{{ configure_stalwart_registry_account_id }}"
-            create:
-              reloadSettings: {'@type': ReloadSettings}
-              reloadTls: {'@type': ReloadTlsCertificates}
-          - reload
     return_content: true
     status_code: 200
     validate_certs: true
@@ -252,4 +265,38 @@
   loop: "{{ configure_stalwart_reconcile_response.json.methodResponses }}"
   loop_control:
     label: "{{ item[2] | default(item[0]) }}"
+  no_log: true
+
+- name: Reload committed Stalwart settings and TLS certificates
+  ansible.builtin.uri:
+    url: "{{ configure_stalwart_api_url }}"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ configure_stalwart_api_key }}"
+    body_format: json
+    body:
+      using:
+        - urn:ietf:params:jmap:core
+        - urn:stalwart:jmap
+      methodCalls:
+        - - x:Action/set
+          - accountId: "{{ configure_stalwart_registry_account_id }}"
+            create:
+              reloadSettings: {'@type': ReloadSettings}
+              reloadTls: {'@type': ReloadTlsCertificates}
+          - reload
+    return_content: true
+    status_code: 200
+    validate_certs: true
+  register: configure_stalwart_reload_response
+  delegate_to: localhost
+  become: false
+  no_log: true
+
+- name: Validate Stalwart reload response
+  ansible.builtin.assert:
+    that:
+      - configure_stalwart_reload_response.json.methodResponses | length == 1
+      - configure_stalwart_reload_response.json.methodResponses[0][0] != 'error'
+    fail_msg: Stalwart did not reload the committed settings.
   no_log: true
