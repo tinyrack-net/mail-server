@@ -123,6 +123,11 @@ spec:
                 secretKeyRef:
                   name: tinyrack-s3-secret
                   key: AWS_SECRET_ACCESS_KEY
+            - name: STALWART_CLOUDFLARE_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: stalwart-cloudflare-dns
+                  key: api-token
       volumes:
         - name: stalwart-config
           configMap:

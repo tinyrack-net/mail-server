@@ -46,6 +46,13 @@ specs:
           - ports:
               - port: "5432"
                 protocol: TCP
+      - toFQDNs:
+          - matchName: api.cloudflare.com
+          - matchName: acme-v02.api.letsencrypt.org
+        toPorts:
+          - ports:
+              - port: "443"
+                protocol: TCP
   - endpointSelector:
       matchLabels:
         io.cilium.k8s.namespace.labels.networking.tinyrack.net/isolation: enabled

@@ -4,6 +4,7 @@ resources:
   - stalwart.namespace.yaml
   - stalwart.database.superuser.secret.yaml
   - stalwart.database.user.secret.yaml
+  - stalwart.cloudflare.secret.yaml
   - stalwart.database.yaml
   - stalwart.backup-cleanup.yaml
   - stalwart.deployment.yaml
