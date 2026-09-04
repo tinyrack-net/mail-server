@@ -69,7 +69,7 @@
         - - x:Http/get
           - accountId: "{{ configure_stalwart_registry_account_id }}"
             ids: [singleton]
-            properties: [id, usePermissiveCors, responseHeaders]
+            properties: [id, usePermissiveCors, useXForwarded, responseHeaders]
           - http-get
     return_content: true
     status_code: 200
@@ -128,6 +128,7 @@
     that:
       - configure_stalwart_verify_objects.json.methodResponses[3][1].list | length == 1
       - not (configure_stalwart_verify_objects.json.methodResponses[3][1].list[0].usePermissiveCors | bool)
+      - not (configure_stalwart_verify_objects.json.methodResponses[3][1].list[0].useXForwarded | bool)
       - >-
         configure_stalwart_verify_objects.json.methodResponses[3][1].list[0].responseHeaders
         == configure_stalwart_http_response_headers

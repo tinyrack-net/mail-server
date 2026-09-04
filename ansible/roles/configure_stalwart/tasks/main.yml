@@ -229,6 +229,7 @@
             update:
               singleton:
                 usePermissiveCors: false
+                useXForwarded: false
                 responseHeaders: "{{ configure_stalwart_http_response_headers }}"
           - http-update
         - - x:Imap/set
