@@ -37,6 +37,14 @@ specs:
           - ports:
               - port: "443"
                 protocol: TCP
+      - fromEndpoints:
+          - matchLabels:
+              k8s:io.kubernetes.pod.namespace: stalwart-system
+              app: stalwart-configurer
+        toPorts:
+          - ports:
+              - port: "443"
+                protocol: TCP
     egress:
       - toEndpoints:
           - matchLabels:
