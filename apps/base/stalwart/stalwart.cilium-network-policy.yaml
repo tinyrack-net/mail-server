@@ -43,7 +43,7 @@ specs:
               app: stalwart-configurer
         toPorts:
           - ports:
-              - port: "443"
+              - port: "80"
                 protocol: TCP
     egress:
       - toEndpoints:
@@ -72,7 +72,7 @@ specs:
               app: stalwart
         toPorts:
           - ports:
-              - port: "443"
+              - port: "80"
                 protocol: TCP
   - endpointSelector:
       matchLabels:

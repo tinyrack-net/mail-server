@@ -26,14 +26,13 @@ spec:
         - name: validate-plan
           image: ghcr.io/stalwartlabs/cli:1.0.12@sha256:fe199affac1d120a8c200ef39ae629765a2976270e0453575c1caf906ee15b52
           args:
-            - --insecure
             - apply
             - --file
             - /config/plan.ndjson
             - --dry-run
           env:
             - name: STALWART_URL
-              value: https://stalwart-web-service.stalwart-system.svc.cluster.local
+              value: http://stalwart-web-service.stalwart-system.svc.cluster.local
             - name: STALWART_TOKEN
               valueFrom:
                 secretKeyRef:
@@ -60,14 +59,13 @@ spec:
         - name: apply-plan
           image: ghcr.io/stalwartlabs/cli:1.0.12@sha256:fe199affac1d120a8c200ef39ae629765a2976270e0453575c1caf906ee15b52
           args:
-            - --insecure
             - apply
             - --file
             - /config/plan.ndjson
             - --json
           env:
             - name: STALWART_URL
-              value: https://stalwart-web-service.stalwart-system.svc.cluster.local
+              value: http://stalwart-web-service.stalwart-system.svc.cluster.local
             - name: STALWART_TOKEN
               valueFrom:
                 secretKeyRef:
@@ -95,12 +93,11 @@ spec:
         - name: reload-settings
           image: ghcr.io/stalwartlabs/cli:1.0.12@sha256:fe199affac1d120a8c200ef39ae629765a2976270e0453575c1caf906ee15b52
           args:
-            - --insecure
             - create
             - Action/ReloadSettings
           env:
             - name: STALWART_URL
-              value: https://stalwart-web-service.stalwart-system.svc.cluster.local
+              value: http://stalwart-web-service.stalwart-system.svc.cluster.local
             - name: STALWART_TOKEN
               valueFrom:
                 secretKeyRef:
