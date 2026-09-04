@@ -1,0 +1,15 @@
+# Cilium host firewall operations
+
+The policy in this directory protects the public `eth0` interface. SSH and the
+Kubernetes API remain available through Tailscale and are intentionally not
+allowed from the public internet.
+
+Before changing the policy, identify the endpoint with identity
+`reserved:host`, enable `PolicyAuditMode`, and observe policy verdicts. Audit
+mode does not survive a Cilium agent restart.
+
+Emergency recovery:
+
+1. Connect through Tailscale SSH or the Hetzner console.
+2. Enable `PolicyAuditMode` on the `reserved:host` endpoint.
+3. Revert the policy through Git and reconcile Flux.
