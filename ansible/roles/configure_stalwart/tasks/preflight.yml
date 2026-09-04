@@ -1,0 +1,41 @@
+---
+- name: Require the Stalwart automation API key
+  ansible.builtin.assert:
+    that:
+      - configure_stalwart_api_key is defined
+      - configure_stalwart_api_key | length > 20
+      - configure_stalwart_api_key is match('^API_')
+    fail_msg: Define vault_stalwart_api_key in the production Ansible Vault.
+  no_log: true
+
+- name: Verify the scoped Stalwart API key
+  ansible.builtin.uri:
+    url: "{{ configure_stalwart_api_url }}"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ configure_stalwart_api_key }}"
+    body_format: json
+    body:
+      using:
+        - urn:ietf:params:jmap:core
+        - urn:stalwart:jmap
+      methodCalls:
+        - - x:Domain/query
+          - accountId: "{{ configure_stalwart_registry_account_id }}"
+            filter: {}
+            limit: 10
+          - domain-query
+    return_content: true
+    status_code: 200
+    validate_certs: true
+  register: configure_stalwart_preflight_response
+  delegate_to: localhost
+  become: false
+  no_log: true
+
+- name: Validate the Stalwart API response
+  ansible.builtin.assert:
+    that:
+      - configure_stalwart_preflight_response.json.methodResponses[0][0] == 'x:Domain/query'
+      - configure_stalwart_preflight_response.json.methodResponses[0][1].ids | length == 2
+    fail_msg: The scoped Stalwart API key could not query both managed domains.

@@ -32,3 +32,8 @@
         tasks_from: preflight
         apply:
           become: true
+
+    - name: Validate Stalwart API access
+      ansible.builtin.include_role:
+        name: configure_stalwart
+        tasks_from: preflight

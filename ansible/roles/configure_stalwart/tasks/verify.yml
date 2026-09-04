@@ -1,0 +1,99 @@
+---
+- name: Run Stalwart API preflight checks
+  ansible.builtin.include_tasks: preflight.yml
+
+- name: Fetch Stalwart TLS target state
+  ansible.builtin.uri:
+    url: "{{ configure_stalwart_api_url }}"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ configure_stalwart_api_key }}"
+    body_format: json
+    body:
+      using:
+        - urn:ietf:params:jmap:core
+        - urn:stalwart:jmap
+      methodCalls:
+        - - x:Certificate/query
+          - accountId: "{{ configure_stalwart_registry_account_id }}"
+            filter: {}
+          - certificate-query
+        - - x:Task/query
+          - accountId: "{{ configure_stalwart_registry_account_id }}"
+            filter: {'@type': AcmeRenewal}
+          - task-query
+        - - x:NetworkListener/query
+          - accountId: "{{ configure_stalwart_registry_account_id }}"
+            filter: {}
+          - listener-query
+    return_content: true
+    status_code: 200
+    validate_certs: true
+  register: configure_stalwart_verify_queries
+  delegate_to: localhost
+  become: false
+  no_log: true
+
+- name: Fetch Stalwart certificates, tasks, and listeners
+  ansible.builtin.uri:
+    url: "{{ configure_stalwart_api_url }}"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ configure_stalwart_api_key }}"
+    body_format: json
+    body:
+      using:
+        - urn:ietf:params:jmap:core
+        - urn:stalwart:jmap
+      methodCalls:
+        - - x:Certificate/get
+          - accountId: "{{ configure_stalwart_registry_account_id }}"
+            ids: "{{ configure_stalwart_verify_queries.json.methodResponses[0][1].ids }}"
+            properties: [id, subjectAlternativeNames, notValidAfter]
+          - certificate-get
+        - - x:Task/get
+          - accountId: "{{ configure_stalwart_registry_account_id }}"
+            ids: "{{ configure_stalwart_verify_queries.json.methodResponses[1][1].ids }}"
+          - task-get
+        - - x:NetworkListener/get
+          - accountId: "{{ configure_stalwart_registry_account_id }}"
+            ids: "{{ configure_stalwart_verify_queries.json.methodResponses[2][1].ids }}"
+            properties: [id, name, useTls, tlsImplicit, tlsDisableProtocols]
+          - listener-get
+    return_content: true
+    status_code: 200
+    validate_certs: true
+  register: configure_stalwart_verify_objects
+  delegate_to: localhost
+  become: false
+  no_log: true
+
+- name: Verify certificate and renewal task counts
+  ansible.builtin.assert:
+    that:
+      - configure_stalwart_verify_objects.json.methodResponses[0][1].list | length == 2
+      - configure_stalwart_verify_objects.json.methodResponses[1][1].list | length == 2
+    fail_msg: Expected two certificates and two pending ACME renewal tasks.
+
+- name: Verify ACME renewal tasks are pending
+  ansible.builtin.assert:
+    that:
+      - item.status['@type'] == 'Pending'
+    fail_msg: "ACME renewal task {{ item.id }} is not pending."
+  loop: "{{ configure_stalwart_verify_objects.json.methodResponses[1][1].list }}"
+  loop_control:
+    label: "{{ item.id }}"
+
+- name: Verify all mail listeners use TLS
+  ansible.builtin.assert:
+    that:
+      - item.useTls | bool
+      - (item.name in ['submissions', 'imaptls', 'pop3s']) == (item.tlsImplicit | bool)
+      - item.tlsDisableProtocols | length == 0
+    fail_msg: "Listener {{ item.name }} does not match the TLS target state."
+  loop: >-
+    {{ configure_stalwart_verify_objects.json.methodResponses[2][1].list
+       | selectattr('name', 'in', configure_stalwart_listener_ids.keys() | list)
+       | list }}
+  loop_control:
+    label: "{{ item.name }}"

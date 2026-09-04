@@ -40,3 +40,8 @@
         tasks_from: verify
         apply:
           become: true
+
+    - name: Verify Stalwart ACME and TLS configuration
+      ansible.builtin.include_role:
+        name: configure_stalwart
+        tasks_from: verify

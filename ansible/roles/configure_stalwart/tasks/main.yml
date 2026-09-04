@@ -1,0 +1,255 @@
+---
+- name: Run Stalwart API preflight checks
+  ansible.builtin.include_tasks: preflight.yml
+
+- name: Query Stalwart registry objects
+  ansible.builtin.uri:
+    url: "{{ configure_stalwart_api_url }}"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ configure_stalwart_api_key }}"
+    body_format: json
+    body:
+      using:
+        - urn:ietf:params:jmap:core
+        - urn:stalwart:jmap
+      methodCalls:
+        - - x:DnsServer/query
+          - accountId: "{{ configure_stalwart_registry_account_id }}"
+            filter: {}
+          - dns-query
+        - - x:AcmeProvider/query
+          - accountId: "{{ configure_stalwart_registry_account_id }}"
+            filter: {}
+          - acme-query
+        - - x:Domain/query
+          - accountId: "{{ configure_stalwart_registry_account_id }}"
+            filter: {}
+          - domain-query
+        - - x:NetworkListener/query
+          - accountId: "{{ configure_stalwart_registry_account_id }}"
+            filter: {}
+          - listener-query
+        - - x:Certificate/query
+          - accountId: "{{ configure_stalwart_registry_account_id }}"
+            filter: {}
+          - certificate-query
+    return_content: true
+    status_code: 200
+    validate_certs: true
+  register: configure_stalwart_registry_queries
+  delegate_to: localhost
+  become: false
+  no_log: true
+
+- name: Fetch Stalwart registry objects
+  ansible.builtin.uri:
+    url: "{{ configure_stalwart_api_url }}"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ configure_stalwart_api_key }}"
+    body_format: json
+    body:
+      using:
+        - urn:ietf:params:jmap:core
+        - urn:stalwart:jmap
+      methodCalls:
+        - - x:DnsServer/get
+          - accountId: "{{ configure_stalwart_registry_account_id }}"
+            ids: "{{ configure_stalwart_registry_queries.json.methodResponses[0][1].ids }}"
+            properties: [id, description]
+          - dns-get
+        - - x:AcmeProvider/get
+          - accountId: "{{ configure_stalwart_registry_account_id }}"
+            ids: "{{ configure_stalwart_registry_queries.json.methodResponses[1][1].ids }}"
+            properties: [id, directory]
+          - acme-get
+        - - x:Domain/get
+          - accountId: "{{ configure_stalwart_registry_account_id }}"
+            ids: "{{ configure_stalwart_registry_queries.json.methodResponses[2][1].ids }}"
+            properties: [id, name]
+          - domain-get
+        - - x:NetworkListener/get
+          - accountId: "{{ configure_stalwart_registry_account_id }}"
+            ids: "{{ configure_stalwart_registry_queries.json.methodResponses[3][1].ids }}"
+            properties: [id, name]
+          - listener-get
+        - - x:Certificate/get
+          - accountId: "{{ configure_stalwart_registry_account_id }}"
+            ids: "{{ configure_stalwart_registry_queries.json.methodResponses[4][1].ids }}"
+            properties: [id, subjectAlternativeNames, notValidAfter]
+          - certificate-get
+    return_content: true
+    status_code: 200
+    validate_certs: true
+  register: configure_stalwart_registry_objects
+  delegate_to: localhost
+  become: false
+  no_log: true
+
+- name: Select Stalwart DNS and ACME providers
+  ansible.builtin.set_fact:
+    configure_stalwart_dns_server_id: >-
+      {{ (configure_stalwart_registry_objects.json.methodResponses[0][1].list
+          | selectattr('description', 'equalto', configure_stalwart_dns_server_description)
+          | map(attribute='id') | list | first) }}
+    configure_stalwart_acme_provider_id: >-
+      {{ (configure_stalwart_registry_objects.json.methodResponses[1][1].list
+          | selectattr('directory', 'equalto', configure_stalwart_acme_directory)
+          | map(attribute='id') | list | first) }}
+
+- name: Validate stable Stalwart object identities
+  ansible.builtin.assert:
+    that:
+      - configure_stalwart_registry_objects.json.methodResponses[0][1].list | length == 1
+      - configure_stalwart_registry_objects.json.methodResponses[1][1].list | length == 1
+      - >-
+        (configure_stalwart_registry_objects.json.methodResponses[2][1].list
+        | map(attribute='name') | list | sort)
+        == (configure_stalwart_domains.keys() | list | sort)
+      - >-
+        configure_stalwart_registry_objects.json.methodResponses[3][1].list
+        | selectattr('name', 'in', configure_stalwart_listener_ids.keys() | list)
+        | list | length == 8
+    fail_msg: Refusing to reconcile because the Stalwart provider, domain, or listener inventory is unexpected.
+
+- name: Select the current winetree94.com certificate
+  ansible.builtin.set_fact:
+    configure_stalwart_default_certificate_id: "{{ item.id }}"
+  loop: "{{ configure_stalwart_registry_objects.json.methodResponses[4][1].list }}"
+  when: item.subjectAlternativeNames['mail.winetree94.com'] | default(false) | bool
+  no_log: true
+
+- name: Require exactly two managed certificates
+  ansible.builtin.assert:
+    that:
+      - configure_stalwart_registry_objects.json.methodResponses[4][1].list | length == 2
+      - configure_stalwart_default_certificate_id is defined
+    fail_msg: Expected exactly two managed certificates and a winetree94.com default certificate.
+
+- name: Reconcile Stalwart ACME, DNS, domain, listener, and authentication settings
+  ansible.builtin.uri:
+    url: "{{ configure_stalwart_api_url }}"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ configure_stalwart_api_key }}"
+    body_format: json
+    body:
+      using:
+        - urn:ietf:params:jmap:core
+        - urn:stalwart:jmap
+      methodCalls:
+        - - x:DnsServer/set
+          - accountId: "{{ configure_stalwart_registry_account_id }}"
+            update:
+              "{{ configure_stalwart_dns_server_id }}":
+                description: "{{ configure_stalwart_dns_server_description }}"
+                secret:
+                  '@type': EnvironmentVariable
+                  variableName: "{{ configure_stalwart_cloudflare_environment_variable }}"
+                timeout: 60000
+                ttl: 300000
+                pollingInterval: 15000
+                propagationTimeout: 120000
+          - dns-update
+        - - x:AcmeProvider/set
+          - accountId: "{{ configure_stalwart_registry_account_id }}"
+            update:
+              "{{ configure_stalwart_acme_provider_id }}":
+                challengeType: Dns01
+                contact:
+                  "{{ configure_stalwart_acme_contact }}": true
+                directory: "{{ configure_stalwart_acme_directory }}"
+                renewBefore: "{{ configure_stalwart_acme_renew_before }}"
+                maxRetries: "{{ configure_stalwart_acme_max_retries }}"
+          - acme-update
+        - - x:Domain/set
+          - accountId: "{{ configure_stalwart_registry_account_id }}"
+            update:
+              "{{ configure_stalwart_domains['tinyrack.net'].id }}":
+                certificateManagement:
+                  '@type': Automatic
+                  acmeProviderId: "{{ configure_stalwart_acme_provider_id }}"
+                  subjectAlternativeNames: >-
+                    {{ configure_stalwart_domains['tinyrack.net'].subject_alternative_names }}
+                dnsManagement:
+                  '@type': Automatic
+                  dnsServerId: "{{ configure_stalwart_dns_server_id }}"
+                  origin: tinyrack.net
+                  publishRecords: {caa: true}
+              "{{ configure_stalwart_domains['winetree94.com'].id }}":
+                certificateManagement:
+                  '@type': Automatic
+                  acmeProviderId: "{{ configure_stalwart_acme_provider_id }}"
+                  subjectAlternativeNames: >-
+                    {{ configure_stalwart_domains['winetree94.com'].subject_alternative_names }}
+                dnsManagement:
+                  '@type': Automatic
+                  dnsServerId: "{{ configure_stalwart_dns_server_id }}"
+                  origin: winetree94.com
+                  publishRecords: {caa: true}
+          - domain-update
+        - - x:SystemSettings/set
+          - accountId: "{{ configure_stalwart_registry_account_id }}"
+            update:
+              singleton:
+                defaultCertificateId: "{{ configure_stalwart_default_certificate_id }}"
+          - system-update
+        - - x:NetworkListener/set
+          - accountId: "{{ configure_stalwart_registry_account_id }}"
+            update:
+              "{{ configure_stalwart_listener_ids.smtp }}": {useTls: true, tlsImplicit: false}
+              "{{ configure_stalwart_listener_ids.submission }}": {useTls: true, tlsImplicit: false}
+              "{{ configure_stalwart_listener_ids.submissions }}": {useTls: true, tlsImplicit: true}
+              "{{ configure_stalwart_listener_ids.imap }}": {useTls: true, tlsImplicit: false}
+              "{{ configure_stalwart_listener_ids.imaptls }}": {useTls: true, tlsImplicit: true}
+              "{{ configure_stalwart_listener_ids.pop3 }}": {useTls: true, tlsImplicit: false}
+              "{{ configure_stalwart_listener_ids.pop3s }}": {useTls: true, tlsImplicit: true}
+              "{{ configure_stalwart_listener_ids.sieve }}": {useTls: true, tlsImplicit: false}
+          - listener-update
+        - - x:Imap/set
+          - accountId: "{{ configure_stalwart_registry_account_id }}"
+            update:
+              singleton:
+                allowPlainTextAuth: false
+          - imap-update
+        - - x:MtaStageAuth/set
+          - accountId: "{{ configure_stalwart_registry_account_id }}"
+            update:
+              singleton:
+                saslMechanisms:
+                  match:
+                    '0':
+                      if: local_port != 25 && is_tls
+                      then: '[plain, login, oauthbearer, xoauth2]'
+                  else: 'false'
+          - smtp-auth-update
+        - - x:Action/set
+          - accountId: "{{ configure_stalwart_registry_account_id }}"
+            create:
+              reloadSettings: {'@type': ReloadSettings}
+              reloadTls: {'@type': ReloadTlsCertificates}
+          - reload
+    return_content: true
+    status_code: 200
+    validate_certs: true
+  register: configure_stalwart_reconcile_response
+  delegate_to: localhost
+  become: false
+  no_log: true
+
+- name: Validate Stalwart reconciliation response count
+  ansible.builtin.assert:
+    that:
+      - configure_stalwart_reconcile_response.json.methodResponses | length == 8
+    fail_msg: Stalwart returned an incomplete reconciliation response.
+
+- name: Validate all Stalwart reconciliation method responses
+  ansible.builtin.assert:
+    that:
+      - item[0] != 'error'
+    fail_msg: One or more Stalwart reconciliation calls failed.
+  loop: "{{ configure_stalwart_reconcile_response.json.methodResponses }}"
+  loop_control:
+    label: "{{ item[2] | default(item[0]) }}"
+  no_log: true
