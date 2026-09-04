@@ -2,6 +2,9 @@
 configure_stalwart_api_url: https://mail.winetree94.com/jmap
 configure_stalwart_api_key: "{{ vault_stalwart_api_key }}"
 configure_stalwart_registry_account_id: e
+configure_stalwart_kubernetes_context: mail-server
+configure_stalwart_kubernetes_namespace: stalwart-system
+configure_stalwart_kubernetes_deployment: stalwart-deployment
 configure_stalwart_cloudflare_environment_variable: STALWART_CLOUDFLARE_API_TOKEN
 configure_stalwart_acme_directory: https://acme-v02.api.letsencrypt.org/directory
 configure_stalwart_acme_contact: mailto:admin@winetree94.com

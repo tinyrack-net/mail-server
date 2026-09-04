@@ -72,7 +72,7 @@
         - - x:NetworkListener/get
           - accountId: "{{ configure_stalwart_registry_account_id }}"
             ids: "{{ configure_stalwart_registry_queries.json.methodResponses[3][1].ids }}"
-            properties: [id, name]
+            properties: [id, name, overrideProxyTrustedNetworks]
           - listener-get
         - - x:Certificate/get
           - accountId: "{{ configure_stalwart_registry_account_id }}"
@@ -101,6 +101,11 @@
       {{ (configure_stalwart_registry_objects.json.methodResponses[3][1].list
           | selectattr('name', 'equalto', configure_stalwart_https_listener_name)
           | map(attribute='id') | list | first) }}
+    configure_stalwart_https_listener_restart_required: >-
+      {{ (configure_stalwart_registry_objects.json.methodResponses[3][1].list
+          | selectattr('name', 'equalto', configure_stalwart_https_listener_name)
+          | map(attribute='overrideProxyTrustedNetworks') | list | first | default({}))
+         != configure_stalwart_https_proxy_trusted_networks }}
 
 - name: Validate stable Stalwart object identities
   ansible.builtin.assert:
@@ -300,3 +305,36 @@
       - configure_stalwart_reload_response.json.methodResponses[0][0] != 'error'
     fail_msg: Stalwart did not reload the committed settings.
   no_log: true
+
+- name: Restart Stalwart when the HTTPS listener transport changed
+  ansible.builtin.command:
+    argv:
+      - kubectl
+      - --context
+      - "{{ configure_stalwart_kubernetes_context }}"
+      - --namespace
+      - "{{ configure_stalwart_kubernetes_namespace }}"
+      - rollout
+      - restart
+      - "deployment/{{ configure_stalwart_kubernetes_deployment }}"
+  delegate_to: localhost
+  become: false
+  changed_when: true
+  when: configure_stalwart_https_listener_restart_required | bool
+
+- name: Wait for Stalwart after the HTTPS listener restart
+  ansible.builtin.command:
+    argv:
+      - kubectl
+      - --context
+      - "{{ configure_stalwart_kubernetes_context }}"
+      - --namespace
+      - "{{ configure_stalwart_kubernetes_namespace }}"
+      - rollout
+      - status
+      - "deployment/{{ configure_stalwart_kubernetes_deployment }}"
+      - --timeout=180s
+  delegate_to: localhost
+  become: false
+  changed_when: false
+  when: configure_stalwart_https_listener_restart_required | bool
