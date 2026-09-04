@@ -6,4 +6,5 @@ resources:
   - bulwark.persistent-volume-claim.yaml
   - bulwark.deployment.yaml
   - bulwark.service.yaml
+  - bulwark.cilium-network-policy.yaml
   - bulwark.ingress-route.yaml
