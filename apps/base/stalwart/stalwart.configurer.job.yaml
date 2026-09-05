@@ -23,6 +23,36 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       initContainers:
+        - name: render-plan
+          image: docker.io/library/busybox:1.37.0@sha256:9db7b59979c38555a39def84a31fb98b5296952f9e3afd4f6f11f05b07adfab0
+          command:
+            - sh
+            - -ec
+            - sed "s|\${GRAFANA_SMTP_PASSWORD}|${GRAFANA_SMTP_PASSWORD}|g" /config-template/plan.ndjson > /config/plan.ndjson
+          env:
+            - name: GRAFANA_SMTP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-smtp-account
+                  key: GRAFANA_SMTP_PASSWORD
+          volumeMounts:
+            - name: plan-template
+              mountPath: /config-template
+              readOnly: true
+            - name: rendered-plan
+              mountPath: /config
+          resources:
+            requests:
+              cpu: 5m
+              memory: 8Mi
+            limits:
+              cpu: 50m
+              memory: 16Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
         - name: validate-plan
           image: ghcr.io/stalwartlabs/cli:1.0.12@sha256:fe199affac1d120a8c200ef39ae629765a2976270e0453575c1caf906ee15b52
           args:
@@ -39,7 +69,7 @@ spec:
                   name: stalwart-configurer
                   key: api-token
           volumeMounts:
-            - name: plan
+            - name: rendered-plan
               mountPath: /config
               readOnly: true
             - name: cache
@@ -72,7 +102,7 @@ spec:
                   name: stalwart-configurer
                   key: api-token
           volumeMounts:
-            - name: plan
+            - name: rendered-plan
               mountPath: /config
               readOnly: true
             - name: cache
@@ -119,8 +149,10 @@ spec:
             capabilities:
               drop: [ALL]
       volumes:
-        - name: plan
+        - name: plan-template
           configMap:
             name: stalwart-plan
+        - name: rendered-plan
+          emptyDir: {}
         - name: cache
           emptyDir: {}

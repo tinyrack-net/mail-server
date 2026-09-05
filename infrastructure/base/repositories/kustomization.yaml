@@ -7,3 +7,5 @@ resources:
   - reflector.yaml
   - jetstack.yaml
   - kyverno.yaml
+  - grafana.yaml
+  - prometheus-community.yaml

@@ -5,6 +5,32 @@ metadata:
   namespace: kube-system
 spec:
   valuesContent: |-
+    deployment:
+      podAnnotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9100"
+        prometheus.io/path: /metrics
+    accessLog:
+      enabled: true
+      format: json
+      fields:
+        defaultMode: keep
+        headers:
+          defaultMode: drop
+          names:
+            traceparent: keep
+        queryParameters:
+          defaultMode: drop
+    tracing:
+      serviceName: traefik
+      sampleRate: 0.1
+      resourceAttributes:
+        cluster: mail-server
+      otlp:
+        enabled: true
+        http:
+          enabled: true
+          endpoint: http://monitoring-alloy.monitoring-system.svc:4318/v1/traces
     service:
       spec:
         allocateLoadBalancerNodePorts: false

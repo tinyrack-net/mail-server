@@ -17,3 +17,4 @@ resources:
   - flux-network-policy-activation.yaml
   - kyverno.yaml
   - traefik.yaml
+  - monitoring.yaml

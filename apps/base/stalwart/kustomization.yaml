@@ -6,6 +6,7 @@ resources:
   - stalwart.database.user.secret.yaml
   - stalwart.cloudflare.secret.yaml
   - stalwart.configurer.secret.yaml
+  - stalwart.grafana-smtp.secret.yaml
   - stalwart.database.yaml
   - stalwart.backup-cleanup.yaml
   - stalwart.deployment.yaml
