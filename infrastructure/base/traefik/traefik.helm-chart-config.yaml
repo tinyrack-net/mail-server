@@ -10,17 +10,20 @@ spec:
         prometheus.io/scrape: "true"
         prometheus.io/port: "9100"
         prometheus.io/path: /metrics
-    accessLog:
-      enabled: true
-      format: json
-      fields:
-        defaultMode: keep
-        headers:
-          defaultMode: drop
-          names:
-            traceparent: keep
-        queryParameters:
-          defaultMode: drop
+    logs:
+      access:
+        enabled: true
+        format: json
+        fields:
+          general:
+            defaultmode: keep
+          headers:
+            defaultmode: drop
+            names:
+              traceparent: keep
+    additionalArguments:
+      # The packaged chart does not expose query-parameter filtering yet.
+      - --accesslog.fields.queryparameters.defaultmode=drop
     tracing:
       serviceName: traefik
       sampleRate: 0.1
