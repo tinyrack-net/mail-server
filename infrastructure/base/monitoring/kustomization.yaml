@@ -3,7 +3,6 @@ kind: Kustomization
 resources:
   - monitoring.namespace.yaml
   - monitoring.kube-state-metrics.helm-release.yaml
-  - monitoring.alloy.pvc.yaml
   - monitoring.alloy.helm-release.yaml
   - monitoring.cilium-network-policy.yaml
   - monitoring.telemetry.secret.yaml
@@ -12,6 +11,9 @@ configMapGenerator:
     namespace: monitoring-system
     files:
       - config.alloy=monitoring.alloy.config.alloy
+      - metrics.alloy=monitoring.alloy.metrics.alloy
+      - logs.alloy=monitoring.alloy.logs.alloy
+      - traces.alloy=monitoring.alloy.traces.alloy
     options:
       disableNameSuffixHash: true
   - name: monitoring-alloy-values

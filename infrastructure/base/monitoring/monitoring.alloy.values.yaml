@@ -18,8 +18,9 @@ controller:
   volumes:
     extra:
       - name: alloy-data
-        persistentVolumeClaim:
-          claimName: alloy-data
+        hostPath:
+          path: /var/lib/alloy
+          type: DirectoryOrCreate
       - name: host-proc
         hostPath:
           path: /proc
@@ -31,6 +32,8 @@ controller:
           path: /
 alloy:
   enableReporting: false
+  clustering:
+    enabled: true
   storagePath: /var/lib/alloy
   envFrom:
     - secretRef:
