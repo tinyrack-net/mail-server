@@ -37,14 +37,6 @@ specs:
           - ports:
               - port: "443"
                 protocol: TCP
-      - fromEndpoints:
-          - matchLabels:
-              k8s:io.kubernetes.pod.namespace: stalwart-system
-              app: stalwart-configurer
-        toPorts:
-          - ports:
-              - port: "80"
-                protocol: TCP
     egress:
       - toEndpoints:
           - matchLabels:
@@ -60,19 +52,6 @@ specs:
         toPorts:
           - ports:
               - port: "443"
-                protocol: TCP
-  - endpointSelector:
-      matchLabels:
-        io.cilium.k8s.namespace.labels.networking.tinyrack.net/isolation: enabled
-        app: stalwart-configurer
-    egress:
-      - toEndpoints:
-          - matchLabels:
-              k8s:io.kubernetes.pod.namespace: stalwart-system
-              app: stalwart
-        toPorts:
-          - ports:
-              - port: "80"
                 protocol: TCP
   - endpointSelector:
       matchLabels:
