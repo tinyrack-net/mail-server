@@ -1,40 +1,43 @@
 declare "pipeline" {
-  otelcol.auth.basic "central" {
-    username = sys.env("TELEMETRY_USERNAME")
-    password = sys.env("TELEMETRY_PASSWORD")
-  }
+	otelcol.auth.basic "central" {
+		username = sys.env("TELEMETRY_USERNAME")
+		password = sys.env("TELEMETRY_PASSWORD")
+	}
 
-  otelcol.receiver.otlp "local" {
-    http {
-      endpoint = "0.0.0.0:4318"
-    }
-    output {
-      traces = [otelcol.processor.memory_limiter.traces.input]
-    }
-  }
+	otelcol.receiver.otlp "local" {
+		http {
+			endpoint = "0.0.0.0:4318"
+		}
 
-  otelcol.processor.memory_limiter "traces" {
-    check_interval = "1s"
-    limit          = "448MiB"
-    spike_limit    = "32MiB"
-    output {
-      traces = [otelcol.processor.batch.traces.input]
-    }
-  }
+		output {
+			traces = [otelcol.processor.memory_limiter.traces.input]
+		}
+	}
 
-  otelcol.processor.batch "traces" {
-    timeout         = "5s"
-    send_batch_size = 512
-    output {
-      traces = [otelcol.exporter.otlphttp.central.input]
-    }
-  }
+	otelcol.processor.memory_limiter "traces" {
+		check_interval = "1s"
+    limit          = "896MiB"
+    spike_limit    = "128MiB"
 
-  otelcol.exporter.otlphttp "central" {
-    client {
-      endpoint = "https://telemetry.winetree94.com"
-      auth     = otelcol.auth.basic.central.handler
-    }
-    traces_endpoint = "https://telemetry.winetree94.com/insert/opentelemetry/v1/traces"
-  }
+		output {
+			traces = [otelcol.processor.batch.traces.input]
+		}
+	}
+
+	otelcol.processor.batch "traces" {
+		timeout         = "5s"
+		send_batch_size = 512
+
+		output {
+			traces = [otelcol.exporter.otlphttp.central.input]
+		}
+	}
+
+	otelcol.exporter.otlphttp "central" {
+		client {
+			endpoint = "https://telemetry.winetree94.com"
+			auth     = otelcol.auth.basic.central.handler
+		}
+		traces_endpoint = "https://telemetry.winetree94.com/insert/opentelemetry/v1/traces"
+	}
 }

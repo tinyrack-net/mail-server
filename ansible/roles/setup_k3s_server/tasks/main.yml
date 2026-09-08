@@ -34,6 +34,21 @@
         else {}
       }}
 
+- name: Build the managed control-plane metric arguments
+  ansible.builtin.set_fact:
+    setup_k3s_server_managed_controller_manager_args: >-
+      {{
+        (setup_k3s_server_existing_config['kube-controller-manager-arg'] | default([])
+        | reject('match', '^bind-address=') | list)
+        + ['bind-address=' ~ setup_k3s_server_metrics_bind_address]
+      }}
+    setup_k3s_server_managed_scheduler_args: >-
+      {{
+        (setup_k3s_server_existing_config['kube-scheduler-arg'] | default([])
+        | reject('match', '^bind-address=') | list)
+        + ['bind-address=' ~ setup_k3s_server_metrics_bind_address]
+      }}
+
 - name: Build the managed K3s configuration
   ansible.builtin.set_fact:
     setup_k3s_server_managed_config: >-
@@ -61,6 +76,9 @@
             )
           | items2dict
         )
+        | combine({'kube-controller-manager-arg': setup_k3s_server_managed_controller_manager_args})
+        | combine({'kube-scheduler-arg': setup_k3s_server_managed_scheduler_args})
+        | combine({'etcd-expose-metrics': true})
         | combine(
             {'cluster-init': true}
             if '--cluster-init' not in setup_k3s_server_existing_service_unit

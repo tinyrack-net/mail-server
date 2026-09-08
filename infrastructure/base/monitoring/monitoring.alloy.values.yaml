@@ -3,6 +3,12 @@ crds:
 rbac:
   clusterRules:
     - apiGroups: [""]
+      resources: ["services", "endpoints", "pods", "pods/log", "namespaces", "events"]
+      verbs: ["get", "list", "watch"]
+    - apiGroups: ["discovery.k8s.io"]
+      resources: ["endpointslices"]
+      verbs: ["get", "list", "watch"]
+    - apiGroups: [""]
       resources: ["nodes"]
       verbs: ["get", "list", "watch"]
     - apiGroups: [""]
@@ -13,6 +19,9 @@ rbac:
       verbs: ["get", "list", "watch"]
     - nonResourceURLs: ["/metrics"]
       verbs: ["get"]
+    - apiGroups: ["monitoring.coreos.com"]
+      resources: ["servicemonitors"]
+      verbs: ["get", "list", "watch"]
 controller:
   type: daemonset
   volumes:
@@ -21,15 +30,6 @@ controller:
         hostPath:
           path: /var/lib/alloy
           type: DirectoryOrCreate
-      - name: host-proc
-        hostPath:
-          path: /proc
-      - name: host-sys
-        hostPath:
-          path: /sys
-      - name: host-root
-        hostPath:
-          path: /
 alloy:
   enableReporting: false
   clustering:
@@ -42,7 +42,7 @@ alloy:
     - name: CLUSTER_NAME
       value: mail-server
     - name: GOMEMLIMIT
-      value: 256MiB
+      value: 768MiB
   extraPorts:
     - name: otlp-http
       port: 4318
@@ -52,22 +52,13 @@ alloy:
     extra:
       - name: alloy-data
         mountPath: /var/lib/alloy
-      - name: host-proc
-        mountPath: /host/proc
-        readOnly: true
-      - name: host-sys
-        mountPath: /host/sys
-        readOnly: true
-      - name: host-root
-        mountPath: /host/root
-        readOnly: true
   resources:
     requests:
       cpu: 50m
-      memory: 128Mi
+      memory: 256Mi
     limits:
-      cpu: 500m
-      memory: 512Mi
+      cpu: "1"
+      memory: 1Gi
   securityContext:
     allowPrivilegeEscalation: false
     readOnlyRootFilesystem: true
