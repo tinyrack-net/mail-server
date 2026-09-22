@@ -47,7 +47,7 @@ Exposed mail protocols are managed through the `stalwart-mail-service` LoadBalan
   release lifecycle through the `cilium` HelmRelease.
 - Both paths consume `infrastructure/base/cilium/values.yaml` as the single
   source of Cilium values.
-- Stalwart external IPv4 traffic leaves through Floating IP `46.225.250.229`.
+- Stalwart external IPv4 traffic leaves through the Floating IP configured in the Ansible inventory.
 - The A record for `mail.winetree94.com` and the Floating IP PTR must match.
 - Use `make preflight`, `make check`, `make apply`, and `make verify` for normal management.
 - In Stalwart, route local domains to `local`, external domains to IPv4-only `mx`, and use `mail.winetree94.com` as the EHLO hostname.
@@ -87,7 +87,7 @@ sudo tailscale up \
 
 ### Hetzner Floating IP
 
-Ansible persistently configures `46.225.250.229/32` as a secondary address on
+Ansible persistently configures the Floating IP from its inventory as a secondary address on
 `eth0` using `/etc/netplan/60-floating-ip.yaml`. The primary address, default
 route, DHCP, and IPv6 configuration remain managed by Hetzner cloud-init.
 
@@ -116,15 +116,34 @@ Ansible refuses to overwrite a mismatched recovery key and fails when any
 additional active sealing key exists. This detects drift without deleting key
 material automatically.
 
+### Host maintenance
+
+Apply pending Ubuntu packages during a maintenance window. The playbook performs
+a safe package upgrade, reboots only when required, and waits for the K3s node
+to become ready again:
+
+```bash
+make -C ansible preflight
+make -C ansible upgrade-host
+make -C ansible verify
+```
+
 ### Flux
 
 ```bash
-flux bootstrap github \
+flux --context mail-server bootstrap github \
   --repository=mail-server \
   --branch=main \
   --path=./clusters/production \
   --owner=tinyrack-net
 ```
+
+## Renovate
+
+Dependency updates run through the Renovate GitHub App. An organization owner
+must install the app for `tinyrack-net/mail-server` before `renovate.json` can
+create Dependency Dashboard entries or pull requests. Minor and major updates
+require explicit Dependency Dashboard approval, and no update is auto-merged.
 
 ## Configuration files
 
@@ -145,7 +164,7 @@ flux bootstrap github \
 Create Kubernetes Secrets locally and seal them before committing:
 
 ```bash
-kubectl create secret generic some-secret \
+kubectl --context mail-server create secret generic some-secret \
   --namespace some-namespace \
   --dry-run=client \
   --from-literal=SOME_SECRET_KEY=SOME_SECRET_VALUE \

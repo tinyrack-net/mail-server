@@ -1,4 +1,4 @@
-.PHONY: ping syntax lint preflight check apply verify vault-edit
+.PHONY: ping syntax lint preflight check apply upgrade-host verify vault-edit
 
 ANSIBLE ?= ansible
 ANSIBLE_PLAYBOOK ?= ansible-playbook
@@ -10,6 +10,7 @@ HOSTS ?= k3s_servers
 
 PREFLIGHT_PLAYBOOK := ./playbooks/preflight.yml
 SETUP_PLAYBOOK := ./playbooks/setup.yml
+UPGRADE_HOST_PLAYBOOK := ./playbooks/upgrade-host.yml
 VERIFY_PLAYBOOK := ./playbooks/verify.yml
 VAULT_FILE := ./inventories/production/group_vars/all/vault.yml
 
@@ -19,6 +20,7 @@ ping:
 syntax:
 	$(ANSIBLE_PLAYBOOK) --syntax-check $(PREFLIGHT_PLAYBOOK)
 	$(ANSIBLE_PLAYBOOK) --syntax-check $(SETUP_PLAYBOOK)
+	$(ANSIBLE_PLAYBOOK) --syntax-check $(UPGRADE_HOST_PLAYBOOK)
 	$(ANSIBLE_PLAYBOOK) --syntax-check $(VERIFY_PLAYBOOK)
 
 lint:
@@ -33,6 +35,9 @@ check:
 
 apply:
 	$(ANSIBLE_PLAYBOOK) $(SETUP_PLAYBOOK) $(ANSIBLE_ARGS)
+
+upgrade-host:
+	$(ANSIBLE_PLAYBOOK) $(UPGRADE_HOST_PLAYBOOK) $(ANSIBLE_ARGS)
 
 verify:
 	$(ANSIBLE_PLAYBOOK) $(VERIFY_PLAYBOOK) $(ANSIBLE_ARGS)

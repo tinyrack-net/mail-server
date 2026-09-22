@@ -13,4 +13,4 @@ spec:
       - key: node-role.kubernetes.io/control-plane
         operator: Exists
   upgrade:
-    image: rancher/k3s-upgrade
+    image: rancher/k3s-upgrade:v1.36.4-k3s1
