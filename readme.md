@@ -42,7 +42,7 @@ Exposed mail protocols are managed through the `stalwart-mail-service` LoadBalan
 
 ## Cilium and mail egress
 
-- K3s uses Cilium `1.20.1` with Pod CIDR `10.57.0.0/16`.
+- K3s uses Cilium `1.20.2` with Pod CIDR `10.57.0.0/16`.
 - Ansible bootstraps Cilium before Flux is available; afterward, Flux owns the
   release lifecycle through the `cilium` HelmRelease.
 - Both paths consume `infrastructure/base/cilium/values.yaml` as the single
