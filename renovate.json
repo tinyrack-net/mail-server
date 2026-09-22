@@ -1,0 +1,161 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard",
+    ":semanticCommits"
+  ],
+  "timezone": "Asia/Seoul",
+  "schedule": [
+    "before 9am on monday"
+  ],
+  "minimumReleaseAge": "3 days",
+  "ignoreUnstable": true,
+  "respectLatest": true,
+  "automerge": false,
+  "platformAutomerge": false,
+  "rebaseWhen": "conflicted",
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "flux": {
+    "enabled": true,
+    "managerFilePatterns": [
+      "/\\.ya?ml$/"
+    ]
+  },
+  "kubernetes": {
+    "enabled": true,
+    "managerFilePatterns": [
+      "/^(apps|infrastructure)\\/base\\/.+\\.ya?ml$/"
+    ]
+  },
+  "kustomize": {
+    "enabled": true
+  },
+  "packageRules": [
+    {
+      "description": "Require explicit approval for production minor and major changes",
+      "matchUpdateTypes": [
+        "minor",
+        "major"
+      ],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "Keep the K3s target and upgrade image in one change",
+      "matchPackageNames": [
+        "k3s-io/k3s",
+        "rancher/k3s-upgrade"
+      ],
+      "allowedVersions": "/^v\\d+\\.\\d+\\.\\d+(?:-k3s\\d+|\\+k3s\\d+)$/",
+      "groupName": "k3s"
+    },
+    {
+      "description": "Use the K3s GitHub release age while allowing Docker tag updates",
+      "matchPackageNames": [
+        "rancher/k3s-upgrade"
+      ],
+      "minimumReleaseAgeBehaviour": "timestamp-optional"
+    },
+    {
+      "description": "Manage the K3s upgrade image through its pinned custom manager",
+      "matchManagers": [
+        "kubernetes"
+      ],
+      "matchFileNames": [
+        "infrastructure/base/k3s-upgrade/k3s-server-plan.yaml"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "Keep CloudNativePG operator and backup plugin changes together",
+      "matchPackageNames": [
+        "cloudnative-pg/cloudnative-pg",
+        "cloudnative-pg/plugin-barman-cloud"
+      ],
+      "groupName": "cloudnative-pg"
+    },
+    {
+      "description": "Use dedicated custom managers for CloudNativePG remote manifests",
+      "matchManagers": [
+        "kustomize"
+      ],
+      "matchFileNames": [
+        "infrastructure/base/cloudnative-pg/kustomization.yaml"
+      ],
+      "enabled": false
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Update the pinned K3s stable version",
+      "managerFilePatterns": [
+        "/ansible/roles/setup_k3s_server/defaults/main\\.yml$/",
+        "/infrastructure/base/k3s-upgrade/k3s-server-plan\\.yaml$/"
+      ],
+      "matchStrings": [
+        "(?:setup_k3s_server_version|version):\\s*(?<currentValue>v\\d+\\.\\d+\\.\\d+\\+k3s\\d+)"
+      ],
+      "datasourceTemplate": "github-releases",
+      "packageNameTemplate": "k3s-io/k3s",
+      "versioningTemplate": "loose"
+    },
+    {
+      "customType": "regex",
+      "description": "Keep the K3s upgrade job image aligned with the target release",
+      "managerFilePatterns": [
+        "/infrastructure/base/k3s-upgrade/k3s-server-plan\\.yaml$/"
+      ],
+      "matchStrings": [
+        "image:\\s*rancher/k3s-upgrade:(?<currentValue>v\\d+\\.\\d+\\.\\d+-k3s\\d+)"
+      ],
+      "datasourceTemplate": "docker",
+      "packageNameTemplate": "rancher/k3s-upgrade",
+      "versioningTemplate": "loose"
+    },
+    {
+      "customType": "regex",
+      "description": "Update the kubectl image stored in the system-upgrade ConfigMap",
+      "managerFilePatterns": [
+        "/infrastructure/base/system-upgrade-controller/system-upgrade-controller\\.yaml$/"
+      ],
+      "matchStrings": [
+        "SYSTEM_UPGRADE_JOB_KUBECTL_IMAGE:\\s*rancher/kubectl:(?<currentValue>v?\\d+\\.\\d+\\.\\d+)"
+      ],
+      "datasourceTemplate": "docker",
+      "packageNameTemplate": "rancher/kubectl",
+      "versioningTemplate": "semver-coerced"
+    },
+    {
+      "customType": "regex",
+      "description": "Update the CloudNativePG operator release manifest",
+      "managerFilePatterns": [
+        "/infrastructure/base/cloudnative-pg/kustomization\\.yaml$/"
+      ],
+      "matchStrings": [
+        "https://github\\.com/cloudnative-pg/cloudnative-pg/releases/download/v(?<currentValue>\\d+\\.\\d+\\.\\d+)/cnpg-\\d+\\.\\d+\\.\\d+\\.yaml"
+      ],
+      "autoReplaceStringTemplate": "https://github.com/cloudnative-pg/cloudnative-pg/releases/download/v{{newValue}}/cnpg-{{newValue}}.yaml",
+      "datasourceTemplate": "github-releases",
+      "packageNameTemplate": "cloudnative-pg/cloudnative-pg",
+      "extractVersionTemplate": "^v?(?<version>.*)$",
+      "versioningTemplate": "semver"
+    },
+    {
+      "customType": "regex",
+      "description": "Update the Barman Cloud plugin release manifest",
+      "managerFilePatterns": [
+        "/infrastructure/base/cloudnative-pg/kustomization\\.yaml$/"
+      ],
+      "matchStrings": [
+        "https://github\\.com/cloudnative-pg/plugin-barman-cloud/releases/download/v(?<currentValue>\\d+\\.\\d+\\.\\d+)/manifest\\.yaml"
+      ],
+      "autoReplaceStringTemplate": "https://github.com/cloudnative-pg/plugin-barman-cloud/releases/download/v{{newValue}}/manifest.yaml",
+      "datasourceTemplate": "github-releases",
+      "packageNameTemplate": "cloudnative-pg/plugin-barman-cloud",
+      "extractVersionTemplate": "^v?(?<version>.*)$",
+      "versioningTemplate": "semver"
+    }
+  ]
+}

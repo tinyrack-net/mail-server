@@ -1,0 +1,68 @@
+---
+- name: Upgrade K3s server host packages
+  hosts: k3s_servers
+  gather_facts: true
+  become: false
+
+  pre_tasks:
+    - name: Require the mail server become password
+      ansible.builtin.assert:
+        that:
+          - ansible_become_password is defined
+          - ansible_become_password != "CHANGE_ME"
+        fail_msg: Run `make vault-edit` and replace the become password placeholder before upgrading.
+
+    - name: Run Floating IP preflight checks
+      ansible.builtin.include_role:
+        name: setup_floating_ip
+        tasks_from: preflight
+        apply:
+          become: true
+
+    - name: Run K3s server preflight checks
+      ansible.builtin.include_role:
+        name: setup_k3s_server
+        tasks_from: preflight
+        apply:
+          become: true
+
+    - name: Validate the Sealed Secrets recovery key
+      ansible.builtin.include_role:
+        name: restore_sealed_secrets_key
+        tasks_from: preflight
+        apply:
+          become: true
+
+  tasks:
+    - name: Apply safe package upgrades
+      ansible.builtin.apt:
+        update_cache: true
+        upgrade: safe
+      become: true
+
+    - name: Inspect the kernel restart marker
+      ansible.builtin.stat:
+        path: /var/run/reboot-required
+      become: true
+      register: setup_k3s_host_reboot_required
+
+    - name: Reboot when required by the package upgrades
+      ansible.builtin.reboot:
+        reboot_timeout: 600
+        post_reboot_delay: 10
+        test_command: /usr/local/bin/k3s kubectl get node --no-headers
+      become: true
+      when: setup_k3s_host_reboot_required.stat.exists
+
+    - name: Wait for the K3s node to become ready
+      ansible.builtin.command:
+        argv:
+          - /usr/local/bin/k3s
+          - kubectl
+          - wait
+          - --for=condition=Ready
+          - node
+          - --all
+          - --timeout=300s
+      become: true
+      changed_when: false
