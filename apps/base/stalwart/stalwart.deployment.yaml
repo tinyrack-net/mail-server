@@ -16,7 +16,7 @@ spec:
     spec:
       initContainers:
         - name: verify-floating-egress
-          image: curlimages/curl:8.22.0
+          image: curlimages/curl:8.23.0
           command:
             - sh
             - -ec
@@ -66,7 +66,7 @@ spec:
                 - ALL
       containers:
         - name: stalwart
-          image: stalwartlabs/stalwart:v0.16.23
+          image: stalwartlabs/stalwart:v0.16.26
           imagePullPolicy: IfNotPresent
           args:
             - --config=/etc/stalwart/config.json
