@@ -6,11 +6,11 @@ metadata:
 spec:
   concurrency: 1
   cordon: true
-  version: v1.36.4+k3s1
+  version: v1.36.5+k3s1
   serviceAccountName: system-upgrade
   nodeSelector:
     matchExpressions:
       - key: node-role.kubernetes.io/control-plane
         operator: Exists
   upgrade:
-    image: rancher/k3s-upgrade:v1.36.4-k3s1
+    image: rancher/k3s-upgrade:v1.36.5-k3s1
