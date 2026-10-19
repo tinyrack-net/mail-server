@@ -128,6 +128,37 @@ make -C ansible upgrade-host
 make -C ansible verify
 ```
 
+### K3s upgrades
+
+K3s follows the **stable** release channel. Patch releases within the current
+stable minor are routine; a new Kubernetes minor is adopted only after K3s
+promotes it to `stable` and Cilium, Kyverno, and Longhorn support that minor.
+Do not merge a K3s minor bump just because it appears upstream.
+
+Check the current stable target before preparing an upgrade:
+
+```bash
+curl -s https://update.k3s.io/v1-release/channels |
+  jq -r '.data[] | select(.id == "stable") | .latest'
+```
+
+Upgrade procedure:
+
+1. Confirm Flux Kustomizations and HelmReleases, CloudNativePG, and Longhorn are
+   healthy, and record the current node, Plan, and Ansible versions.
+2. Create an etcd snapshot and a fresh CNPG backup.
+3. Update the Ansible pin and the SUC Plan together:
+   - `ansible/roles/setup_k3s_server/defaults/main.yml`
+   - `infrastructure/base/k3s-upgrade/k3s-server-plan.yaml`
+4. Merge during a maintenance window. Flux applies the Plan; the
+   system-upgrade-controller cordons the node and runs the upgrade job. Do not
+   run `make -C ansible apply` while that job is running.
+5. Watch the Plan, node, and pods until the Plan reports `Complete`.
+6. Verify `make -C ansible verify`, a no-change `make -C ansible check`, Flux
+   reconciliation, Cilium, mail protocols, CloudNativePG, and Longhorn.
+7. Roll back by restoring the pre-upgrade etcd snapshot. The
+   system-upgrade-controller does not downgrade in place.
+
 ### Flux
 
 ```bash
@@ -144,6 +175,8 @@ Dependency updates run through the Renovate GitHub App. An organization owner
 must install the app for `tinyrack-net/mail-server` before `renovate.json` can
 create Dependency Dashboard entries or pull requests. Minor and major updates
 require explicit Dependency Dashboard approval, and no update is auto-merged.
+K3s minor updates are approved only after the stable-channel and component
+support checks in [K3s upgrades](#k3s-upgrades).
 
 ## Configuration files
 
