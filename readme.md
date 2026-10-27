@@ -56,6 +56,11 @@ Exposed mail protocols are managed through the `stalwart-mail-service` LoadBalan
   public first-party client `bulwark-webmail`, registered in Stalwart with one
   redirect URI per Bulwark locale (`https://webmail.winetree94.com/<locale>/auth/callback`).
   Re-register it after restoring Stalwart settings from scratch.
+- The WebUI `Application` (`/admin`, `/account`) follows
+  `https://github.com/stalwartlabs/webui/releases/download/v2/webui.zip` and
+  keeps `oauthClientId` empty, so it signs in with its Client ID Metadata
+  Document. The value `stalwart-webui` carried over from 0.16 is not a
+  registered client in 1.0 and fails with `Unknown client id`.
 - Stalwart 1.x upgrades are in place: bump the image tag after reading the
   release notes.
 
