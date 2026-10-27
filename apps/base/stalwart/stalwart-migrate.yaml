@@ -1,0 +1,92 @@
+# Temporary toolbox for the Stalwart 0.16 -> 1.0 migration (stalwart-migrate).
+# Remove this file and the CNP rules labelled stalwart-migrate once the
+# migration is retired. The state PVC is kept (prune disabled) because
+# `stalwart-migrate rollback` reads it.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: stalwart-migrate-state
+  namespace: stalwart-system
+  annotations:
+    kustomize.toolkit.fluxcd.io/prune: disabled
+  labels:
+    recurring-job.longhorn.io/source: enabled
+    recurring-job-group.longhorn.io/longhorn-backup: enabled
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: longhorn-strict-local
+  volumeMode: Filesystem
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stalwart-migrate
+  namespace: stalwart-system
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: stalwart-migrate
+  template:
+    metadata:
+      labels:
+        app: stalwart-migrate
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 2000
+        runAsGroup: 2000
+        fsGroup: 2000
+      containers:
+        - name: stalwart-migrate
+          image: stalwartlabs/stalwart-migrate:1.0.1
+          command:
+            - sleep
+            - infinity
+          stdin: true
+          tty: true
+          env:
+            - name: STALWART_MIGRATE_STATE
+              value: /var/lib/stalwart-migrate
+            - name: STALWART_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: stalwart-database-user-secret
+                  key: password
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "2"
+              memory: 2Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: source-config
+              mountPath: /etc/stalwart
+              readOnly: true
+            - name: target-config
+              mountPath: /etc/stalwart-v1
+              readOnly: true
+            - name: state
+              mountPath: /var/lib/stalwart-migrate
+      volumes:
+        - name: source-config
+          configMap:
+            name: stalwart-config
+        - name: target-config
+          configMap:
+            name: stalwart-v1-config
+        - name: state
+          persistentVolumeClaim:
+            claimName: stalwart-migrate-state

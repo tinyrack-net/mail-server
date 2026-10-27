@@ -99,6 +99,20 @@ spec:
   #     secret:
   #       name: stalwart-database-user-secret
 ---
+# Stalwart 1.0 data store. Stalwart 1.0 cannot open the 0.16 `stalwart`
+# database, so stalwart-migrate copies it into this new database.
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: stalwart-v1
+  namespace: stalwart-system
+spec:
+  name: stalwart_v1
+  owner: stalwart
+  cluster:
+    name: stalwart-database-cluster
+  databaseReclaimPolicy: retain
+---
 apiVersion: postgresql.cnpg.io/v1
 kind: ScheduledBackup
 metadata:

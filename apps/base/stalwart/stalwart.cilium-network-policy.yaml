@@ -66,6 +66,15 @@ specs:
           - ports:
               - port: "5432"
                 protocol: TCP
+      # Temporary: stalwart-migrate (0.16 -> 1.0 migration toolbox).
+      - fromEndpoints:
+          - matchLabels:
+              k8s:io.kubernetes.pod.namespace: stalwart-system
+              app: stalwart-migrate
+        toPorts:
+          - ports:
+              - port: "5432"
+                protocol: TCP
       - fromEndpoints:
           - matchLabels:
               k8s:io.kubernetes.pod.namespace: cnpg-system
@@ -101,4 +110,18 @@ specs:
               - port: "5432"
                 protocol: TCP
               - port: "8000"
+                protocol: TCP
+  # Temporary: stalwart-migrate (0.16 -> 1.0 migration toolbox).
+  - endpointSelector:
+      matchLabels:
+        io.cilium.k8s.namespace.labels.networking.tinyrack.net/isolation: enabled
+        app: stalwart-migrate
+    egress:
+      - toEndpoints:
+          - matchLabels:
+              k8s:io.kubernetes.pod.namespace: stalwart-system
+              cnpg.io/cluster: stalwart-database-cluster
+        toPorts:
+          - ports:
+              - port: "5432"
                 protocol: TCP
