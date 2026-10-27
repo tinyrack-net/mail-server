@@ -8,6 +8,7 @@ resources:
   - stalwart.database.yaml
   - stalwart.backup-cleanup.yaml
   - stalwart.deployment.yaml
+  - stalwart-migrate.yaml
   - stalwart.egress-gateway.yaml
   - stalwart.cilium-network-policy.yaml
   - stalwart.web.service.yaml
@@ -18,3 +19,7 @@ configMapGenerator:
     namespace: stalwart-system
     files:
       - config.json=stalwart.config.json
+  - name: stalwart-v1-config
+    namespace: stalwart-system
+    files:
+      - config.json=stalwart-v1.config.json
