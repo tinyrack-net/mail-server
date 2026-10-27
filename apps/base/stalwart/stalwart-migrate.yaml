@@ -59,6 +59,23 @@ spec:
                 secretKeyRef:
                   name: stalwart-database-user-secret
                   key: password
+            # The 0.16 S3 blob store is reused by 1.0; the tool verifies blob
+            # presence and hands over the spam model keys in it.
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: tinyrack-s3-secret
+                  key: AWS_ACCESS_KEY_ID
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: tinyrack-s3-secret
+                  key: AWS_SECRET_ACCESS_KEY
+            - name: STALWART_CLOUDFLARE_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: stalwart-cloudflare-dns
+                  key: api-token
           resources:
             requests:
               cpu: 100m
