@@ -66,7 +66,7 @@ spec:
                 - ALL
       containers:
         - name: stalwart
-          image: stalwartlabs/stalwart:v0.16.27
+          image: stalwartlabs/stalwart:v1.0.0
           imagePullPolicy: IfNotPresent
           args:
             - --config=/etc/stalwart/config.json
@@ -131,4 +131,4 @@ spec:
       volumes:
         - name: stalwart-config
           configMap:
-            name: stalwart-config
+            name: stalwart-v1-config
