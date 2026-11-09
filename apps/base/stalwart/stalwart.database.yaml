@@ -1,29 +1,6 @@
 apiVersion: barmancloud.cnpg.io/v1
 kind: ObjectStore
 metadata:
-  name: stalwart-database-backup-store
-  namespace: stalwart-system
-spec:
-  retentionPolicy: 30d
-  configuration:
-    destinationPath: s3://tinyrack-prod/clusters/public/apps/stalwart/database-17
-    endpointURL: https://fsn1.your-objectstorage.com
-    s3Credentials:
-      accessKeyId:
-        name: tinyrack-s3-secret
-        key: AWS_ACCESS_KEY_ID
-      secretAccessKey:
-        name: tinyrack-s3-secret
-        key: AWS_SECRET_ACCESS_KEY
-    data:
-      compression: gzip
-    wal:
-      compression: gzip
-      maxParallel: 8
----
-apiVersion: barmancloud.cnpg.io/v1
-kind: ObjectStore
-metadata:
   name: stalwart-database-backup-store-pg18
   namespace: stalwart-system
 spec:
@@ -70,12 +47,6 @@ spec:
       storageClassName: longhorn-strict-local
       volumeMode: Filesystem
   externalClusters:
-    - name: stalwart-database
-      plugin:
-        name: barman-cloud.cloudnative-pg.io
-        parameters:
-          barmanObjectName: stalwart-database-backup-store
-          serverName: stalwart-database
     - name: stalwart-database-pg18
       plugin:
         name: barman-cloud.cloudnative-pg.io
@@ -99,8 +70,7 @@ spec:
   #     secret:
   #       name: stalwart-database-user-secret
 ---
-# Stalwart 1.0 data store. Stalwart 1.0 cannot open the 0.16 `stalwart`
-# database, so stalwart-migrate copies it into this new database.
+# Stalwart 1.x data store.
 apiVersion: postgresql.cnpg.io/v1
 kind: Database
 metadata:
