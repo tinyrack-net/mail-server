@@ -66,7 +66,7 @@ spec:
                 - ALL
       containers:
         - name: stalwart
-          image: stalwartlabs/stalwart:v1.0.0
+          image: stalwartlabs/stalwart:v1.0.3
           imagePullPolicy: IfNotPresent
           args:
             - --config=/etc/stalwart/config.json
@@ -108,6 +108,10 @@ spec:
           env:
             - name: STALWART_PUBLIC_URL
               value: https://mail.winetree94.com
+            # One-time: add the permissions introduced after v1.0.0 to the
+            # default roles. Remove after the first v1.0.3 start.
+            - name: STALWART_UPDATE_ROLE_PERMISSIONS
+              value: "true"
             - name: STALWART_DB_PASSWORD
               valueFrom:
                 secretKeyRef:
