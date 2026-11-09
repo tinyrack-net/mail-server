@@ -27,7 +27,6 @@ It runs Flux on K3s and uses the manifests under `apps` and `infrastructure` to 
 ## Services
 
 - [Stalwart Mail](https://stalw.art/) 1.x: mail server for `mail.winetree94.com`.
-- [Bulwark Webmail](https://bulwarkmail.org/): JMAP webmail client for `webmail.winetree94.com`.
 - [Traefik](https://traefik.io/): HTTP ingress for the Stalwart web/admin surface.
 - [CloudNativePG](https://cloudnative-pg.io/): PostgreSQL operator for application data.
 - [Longhorn](https://longhorn.io/): persistent volume management and volume backups.
@@ -42,20 +41,17 @@ Exposed mail protocols are managed through the `stalwart-mail-service` LoadBalan
 
 ## Stalwart storage and OAuth clients
 
-- Stalwart 1.0 uses the `stalwart_v1` PostgreSQL database in
+- Stalwart 1.x uses the `stalwart_v1` PostgreSQL database in
   `stalwart-database-cluster`; `stalwart-v1.config.json` is its data store
-  definition. The 0.16 `stalwart` database and `stalwart-config` ConfigMap are
-  kept only as the migration source until they are retired.
+  definition.
 - Message bodies, attachments and application bundles live in the external S3
   blob store configured inside Stalwart (bucket `tinyrack-stalwart`, prefix
   `stalwart/`). Its credentials are stored in the Stalwart settings, not in
   this repository.
 - A blob store change does not move existing blobs. Before a future blob store
   change, copy every blob first, or the older messages become unreadable.
-- Stalwart 1.0 accepts only registered OAuth clients. Bulwark signs in as the
-  public first-party client `bulwark-webmail`, registered in Stalwart with one
-  redirect URI per Bulwark locale (`https://webmail.winetree94.com/<locale>/auth/callback`).
-  Re-register it after restoring Stalwart settings from scratch.
+- Stalwart 1.x accepts only registered OAuth clients. Register third-party
+  clients in Stalwart with the scopes they need.
 - The WebUI `Application` (`/admin`, `/account`) follows
   `https://github.com/stalwartlabs/webui/releases/download/v2/webui.zip` and
   keeps `oauthClientId` empty, so it signs in with its Client ID Metadata
@@ -63,19 +59,6 @@ Exposed mail protocols are managed through the `stalwart-mail-service` LoadBalan
   registered client in 1.0 and fails with `Unknown client id`.
 - Stalwart 1.x upgrades are in place: bump the image tag after reading the
   release notes.
-
-### Retiring the 0.16 migration
-
-`stalwart-migrate` copied 0.16.27 into 1.0.0 on 2026-10-27. Its toolbox
-(`stalwart-migrate.yaml`) and state PVC remain only for a rollback. A rollback
-after 1.0 has served mail must use `stalwart-migrate rollback` into a new, empty
-0.16 store, because the S3 blob store is shared; see the
-[rollback guide](https://stalw.art/docs/migration/upgrade-0-16/rollback).
-
-Once 1.0 has proved itself, remove the toolbox and its CNP rules, the
-`stalwart-config` ConfigMap, and the AWS environment variables of the Stalwart
-Deployment once no Stalwart setting references them. Then delete the state PVC
-and drop the `stalwart` database.
 
 ## Cilium and mail egress
 
